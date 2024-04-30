@@ -15,7 +15,8 @@ class Robot:
         self.reward_model = reward_model
         self.info = info
 
-    def get_recommendation(self, health: int, time: int, ):
+    def get_recommendation(self, health: int, time: int):
+        pass
 
 class Solver:
     """

@@ -60,7 +60,7 @@ class HumanModel(Human):
         super().__init__(trust_model, decision_model, reward_model)
 
     def update_model(self, rec, threat, threat_level, health=100, time=0):
-
+        pass
 
 # class ReversePsychology(HumanBase):
 #     """The reverse psychology model of human behavior"""
