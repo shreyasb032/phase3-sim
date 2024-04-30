@@ -4,6 +4,9 @@ from classes.DecisionModels import BoundedRationalityDisuse
 
 
 class Human:
+    """
+    This is the class for the simulated human. It has a fixed trust_model, decision_model, and reward_model
+    """
 
     def __init__(self, trust_model: BetaDistributionModel, decision_model: BoundedRationalityDisuse,
                  reward_model: RewardModelBase):
@@ -16,18 +19,14 @@ class Human:
         self.decision_model = decision_model
         self.reward_model = reward_model
 
-    def update_trust(self, rec, threat, threat_level, health=100, time=0):
+    def update_trust(self, recommendation: int, threat: int, threat_level: float, wh: float):
         """Update trust based on immediate observed reward
-        :param rec: recommendation given to the human
+        :param recommendation: recommendation given to the human
         :param threat: integer representing the presence of threat
         :param threat_level: a float representing the level of threat
-        :param health: the current health level of the soldier
-        :param time: the time spent in the mission"""
-
-        performance = 0
-        if rec == threat:
-            performance = 1
-        self.trust_model.update(performance)
+        :param wh: the health reward weight of the human
+        """
+        self.trust_model.update(recommendation, threat, threat_level, wh)
 
     def get_trust_mean(self):
         """Returns the mean level of trust"""
@@ -49,6 +48,18 @@ class Human:
         trust = self.trust_model.trust_sampled
         wh = self.reward_model.get_wh(health=health, time=time)
         return self.decision_model.choose_action(rec, trust, wh=wh, threat_level=threat_level)
+
+
+class HumanModel(Human):
+    """
+    The human model maintained by the robot. This one will have a variable trust dynamics model which is updated
+    after getting trust feedback from the simulated human
+    """
+    def __init__(self, trust_model: BetaDistributionModel, decision_model: BoundedRationalityDisuse,
+                 reward_model: RewardModelBase):
+        super().__init__(trust_model, decision_model, reward_model)
+
+    def update_model(self, rec, threat, threat_level, health=100, time=0):
 
 
 # class ReversePsychology(HumanBase):

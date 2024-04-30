@@ -1,5 +1,6 @@
 from typing import Dict
 from numpy.random import default_rng
+from classes.PerformanceMetrics import PerformanceMetricBase
 
 
 class TrustModelBase:
@@ -10,11 +11,14 @@ class TrustModelBase:
     def __init__(self):
         pass
 
-    def update(self, performance: int):
+    def update(self, recommendation: int, threat: int, threat_level: float, wh: float):
         """
         Updates and returns the trust level of the human on the robot.
         Must be implemented by a child class
-        :param performance: the performance of the system
+        :param recommendation: the recommended action of the system
+        :param threat: an integer representing the observed presence of threat inside the site
+        :param threat_level: the threat level reported by the drone
+        :param wh: the health reward weight of the human
         """
         raise NotImplementedError
 
@@ -26,7 +30,7 @@ class BetaDistributionModel(TrustModelBase):
     Guo et al. (2021) - Modeling and Predicting Trust Dynamics in Human–Robot Teaming: A Bayesian Inference Approach
     """
 
-    def __init__(self, parameters: Dict[str, float], seed: int = 123):
+    def __init__(self, parameters: Dict[str, float], performance_metric: PerformanceMetricBase, seed: int = 123):
         """
         Initializes the class
         :param parameters: a dict with keys alpha0, beta0, vs, vf and corresponding values
@@ -39,6 +43,7 @@ class BetaDistributionModel(TrustModelBase):
         self.performance_history = []
         self.num_successes = 0
         self.num_failures = 0
+        self.performance_metric = performance_metric
 
         self.alpha_0 = self.parameters['alpha0']
         self.beta_0 = self.parameters['beta0']
@@ -51,11 +56,15 @@ class BetaDistributionModel(TrustModelBase):
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
 
-    def update(self, performance: int):
+    def update(self, recommendation: int, threat: int, threat_level: float, wh: float):
         """
         Updates the mean and sampled trust
-        :param performance: the performance of the system
+        :param recommendation: the recommended action of the system
+        :param threat: an integer representing the observed presence of threat inside the site
+        :param threat_level: the threat level reported by the drone
+        :param wh: the health reward weight of the human
         """
+        performance = self.performance_metric.get_performance(recommendation, threat, threat_level, wh)
         self.num_successes += performance
         self.num_failures += (1 - performance)
         self.performance_history.append(performance)
@@ -64,3 +73,6 @@ class BetaDistributionModel(TrustModelBase):
 
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
+
+    def get_performance(self, recommendation: int, threat: int, threat_level: float, wh: float):
+        return self.performance_metric.get_performance(recommendation, threat, threat_level, wh)

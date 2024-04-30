@@ -39,9 +39,9 @@ class ConstantWeights(RewardModelBase):
         return self.wh
 
 
-class StateDependent(RewardModelBase):
+class StateDependentWeights(RewardModelBase):
 
-    def __init__(self, model_path: str | None = None, scaler_path: str | None = None):
+    def __init__(self, model_path: str | None = None, scaler_path: str | None = None, add_noise: bool = False):
         """
         :param model_path: The path to a pickle saved statsmodels OLSResults object (default: None)
         :param scaler_path: The path to a pickle saved scipy StandardScaler object (default: None)
@@ -62,6 +62,11 @@ class StateDependent(RewardModelBase):
         with open(self.scaler_path, 'rb') as f:
             self.scaler = pickle.load(f)
 
+        self.add_noise = add_noise
+        self.rng = None
+        if self.add_noise:
+            self.rng = np.random.default_rng(seed=123)
+
     def get_wh(self, **kwargs) -> float:
         """
         :param kwargs: additional keyword arguments associated with specific reward models
@@ -77,5 +82,9 @@ class StateDependent(RewardModelBase):
         x_scaled_with_constant = np.insert(x_scaled, 0, 1., axis=1)
         y = x_scaled_with_constant @ self.ols_results.params
         wh = expit(y)
+
+        if self.add_noise:
+            wh += self.rng.normal(loc=0.0, scale=0.05)
+            wh = max(0.501, wh)
 
         return wh

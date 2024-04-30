@@ -1,90 +1,71 @@
 from typing import Dict
-from classes.RewardModels import RewardsBase
+from classes.RewardModels import RewardModelBase
 
 
 class PerformanceMetricBase:
 
-    def __init__(self, idx: int = None):
+    def __init__(self):
         """
         Base class. Other classes should inherit from this class and implement the methods below.
-        :param idx: the index associated with the performance metric
-                    1 - immediate observed rewards metric
-                    2 - immediate expected rewards metric
         """
-        self.idx = idx
         pass
 
-    def get_performance(self, rec: int, health: float, time: float, threat: float):
+    def get_performance(self, recommendation: int, threat: int, threat_level: float, wh: float):
+        """
+        Computes the performance of the recommendation. Classes inheriting from this base class should implement this
+        function
+        :param recommendation: The recommended action by the system
+        :param threat: The observed presence of threat
+        :param threat_level: The threat level indicated by the drone
+        :param wh: The health reward weight of the human
+        :return: an integer representing the performance of the recommendation
+        """
         raise NotImplementedError
 
 
-class ImmediateObservedReward(PerformanceMetricBase):
+class ObservedReward(PerformanceMetricBase):
 
-    def __init__(self, reward_weights: Dict, reward_fun: RewardsBase, idx: int = 1):
+    def __init__(self):
         """
         The metric that gives a performance value after observing rewards from the environment
-        :param: reward_weights: dictionary with key "health_weight", "time_weight" specifying the reward weights of the
-        human
-        :param reward_fun: function that returns rewards based on the state and action chosen/recommended
-        idx: the index associated with this performance metric (default: 1)
         """
+        super().__init__()
 
-        super().__init__(idx)
-
-        self.reward_weights = reward_weights
-        self.reward_fun = reward_fun
-
-    def get_performance(self, rec: int, health: float, time: float, threat: float):
+    def get_performance(self, recommendation: int, threat: int, threat_level: float, wh: float):
         """
-        The method that returns the performance at the current site.
-        :param rec: the recommendation given to the human
-        :param health: the current health level of the soldier
-        :param time: the time spent in the mission
-        :param threat: an integer representing the presence of threat inside the current site
+        Computes the performance of the recommendation by comparing the observed rewards for the two actions
+        :param recommendation: The recommended action by the system
+        :param threat: The observed presence of threat
+        :param threat_level: The threat level indicated by the drone
+        :param wh: The health reward weight of the human
+        :return: an integer representing the performance of the recommendation
         """
+        wc = 1 - wh
+        reward_for_recommended_action = -wh * threat * (1 - recommendation) - wc * recommendation
+        reward_for_other_action = -wh * threat * recommendation - wc * (1 - recommendation)
 
-        threat = int(threat)
-
-        rewards = self.reward_fun.reward(health, time, house=None)
-
-        # time_loss_reward and health_loss_reward return negative values
-        rew2follow = rec * self.reward_weights["time"] * rewards[1] + \
-                     (1 - rec) * self.reward_weights["health"] * threat * rewards[0]
-        rew2unfollow = (1 - rec) * self.reward_weights["time"] * rewards[1] + \
-                       rec * self.reward_weights["health"] * threat * rewards[0]
-
-        return int(rew2follow >= rew2unfollow)
+        return int(reward_for_recommended_action >= reward_for_other_action)
 
 
 class ImmediateExpectedReward(PerformanceMetricBase):
 
-    def __init__(self, reward_weights: Dict, reward_fun: RewardsBase, idx: int = 2):
+    def __init__(self):
         """
         The metric that gives a performance value after observing rewards from the environment
-        :param: reward_weights: dictionary with key "health_weight", "time_weight" specifying the reward weights of the
-        human
-        :param reward_fun: function that returns rewards based on the state and action chosen/recommended
-        idx: the index associated with this performance metric (default: 2)
         """
-        super().__init__(idx)
+        super().__init__()
 
-        self.reward_weights = reward_weights
-        self.reward_fun = reward_fun
-
-    def get_performance(self, rec: int, health: int, time: int, threat: float):
+    def get_performance(self, recommendation: int, threat: int, threat_level: float, wh: float):
         """
-        The method that returns the performance at the current site.
-        :param rec: the recommendation given to the human
-        :param health: the current health level of the soldier
-        :param time: the time spent in the mission
-        :param threat: a float representing the level of threat inside the current site
+        Computes the performance of the recommendation by comparing the observed rewards for the two actions
+        :param recommendation: The recommended action by the system
+        :param threat: The observed presence of threat
+        :param threat_level: The threat level indicated by the drone
+        :param wh: The health reward weight of the human
+        :return: an integer representing the performance of the recommendation
         """
-        rewards = self.reward_fun.reward(health, time, house=None)
+        wc = 1 - wh
+        reward_for_recommended_action = -wh * threat_level * (1 - recommendation) - wc * recommendation
+        reward_for_other_action = -wh * threat_level * recommendation - wc * (1 - recommendation)
 
-        # time_loss_reward and health_loss_reward return negative values
-        rew2follow = rec * self.reward_weights["time"] * rewards[1] + (1 - rec) * self.reward_weights[
-            "health"] * threat * rewards[0]
-        rew2unfollow = (1 - rec) * self.reward_weights["time"] * rewards[1] + rec * self.reward_weights[
-            "health"] * threat * rewards[0]
-
-        return int(rew2follow >= rew2unfollow)
+        return int(reward_for_recommended_action >= reward_for_other_action)
