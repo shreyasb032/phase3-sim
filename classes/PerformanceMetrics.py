@@ -1,5 +1,5 @@
 from typing import Dict
-from classes.RewardFunctions import RewardsBase
+from classes.RewardModels import RewardsBase
 
 
 class PerformanceMetricBase:

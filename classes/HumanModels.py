@@ -1,9 +1,10 @@
 from typing import Dict, List
 import numpy as np
-from copy import copy
 from numpy.random import beta
-from classes.RewardFunctions import RewardsBase
+from classes.RewardModels import RewardModelBase
 from classes.PerformanceMetrics import PerformanceMetricBase
+from classes.TrustModels import BetaDistributionModel
+from classes.DecisionModels import BoundedRationalityDisuse
 
 
 class HumanBase:
@@ -11,53 +12,12 @@ class HumanBase:
     Base model for the simulated human. Other classes should inherit from this class and implement their own functions
     """
 
-    def __init__(self, params: List, reward_weights: Dict, reward_fun: RewardsBase,
-                 performance_metric: PerformanceMetricBase):
+    def __init__(self, trust_model: BetaDistributionModel, decision_model: BoundedRationalityDisuse,
+                 reward_model: RewardModelBase):
         """
-        Initializes the human base class
-        :param params: the trust parameters associated with the human. List [alpha0, beta0, ws, wf]
-        :param reward_weights: the reward weights associated with the human. Dict with keys 'health' and 'time'
-        :param reward_fun: the reward function associated with this human. Must have the function reward(health, time)
-        :param performance_metric: the performance metric that returns the performance given the recommendation and
-                                    outcome
+        :param trust_model:
+        :param decision_model:
         """
-
-        # Initializing the params and trust
-        self.params = copy(params)
-        self.trust = params[0] / (params[0] + params[1])
-        self._alpha = params[0]
-        self._beta = params[1]
-
-        # Saving a copy for resetting
-        self.init_params = copy(params)
-
-        # Reward weights (Dict with keys 'health' and 'time)
-        self.reward_weights = reward_weights
-
-        # Reward function
-        self.reward_fun = reward_fun
-
-        # Performance metric
-        self.performance_metric = performance_metric
-
-        # Storage
-        self.performance_history = []
-
-    def set_params(self, params):
-        """
-        Updates the trust parameters of the human
-        :param params: the trust parameters list [alpha0, beta0, ws, wf]
-        """
-        self.params = copy(params)
-
-    def reset(self):
-        """
-        Resets the human model. NOT SURE WHY I AM NOT CLEARING THE PERFORMANCE HISTORY HERE.
-        """
-        self.params = copy(self.init_params)
-        self.trust = self.params[0] / (self.params[0] + self.params[1])
-        self._alpha = self.params[0]
-        self._beta = self.params[1]
 
     def update_trust(self, rec, threat, threat_level, health=100, time=0):
         """Update trust based on immediate observed reward

@@ -1,7 +1,7 @@
 from typing import Dict, List
 import numpy as np
 from copy import copy
-from classes.RewardFunctions import RewardsBase
+from classes.RewardModels import RewardsBase
 from classes.IRLModel import Posterior
 
 

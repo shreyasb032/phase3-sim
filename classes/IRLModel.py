@@ -1,5 +1,5 @@
 import numpy as np
-from classes.RewardFunctions import RewardsBase
+from classes.RewardModels import RewardsBase
 
 
 class Posterior:
