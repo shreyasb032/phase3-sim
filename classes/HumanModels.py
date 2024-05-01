@@ -1,6 +1,7 @@
 from classes.RewardModels import RewardModelBase
 from classes.TrustModels import BetaDistributionModel
 from classes.DecisionModels import BoundedRationalityDisuse
+from classes.ParamsUpdater import Estimator
 
 
 class Human:
@@ -26,7 +27,7 @@ class Human:
         :param threat_level: a float representing the level of threat
         :param wh: the health reward weight of the human
         """
-        self.trust_model.update(recommendation, threat, threat_level, wh)
+        self.trust_model.update_trust(recommendation, threat, threat_level, wh)
 
     def get_trust_mean(self):
         """Returns the mean level of trust"""
@@ -58,9 +59,10 @@ class HumanModel(Human):
     def __init__(self, trust_model: BetaDistributionModel, decision_model: BoundedRationalityDisuse,
                  reward_model: RewardModelBase):
         super().__init__(trust_model, decision_model, reward_model)
+        self.trust_model_updater = Estimator(self.trust_model)
 
-    def update_model(self, rec, threat, threat_level, health=100, time=0):
-        pass
+    def update_trust_model(self, trust_feedback: float, site_idx: int):
+        self.trust_model = self.trust_model_updater.update_model(trust_feedback, site_idx)
 
 # class ReversePsychology(HumanBase):
 #     """The reverse psychology model of human behavior"""

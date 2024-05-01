@@ -1,25 +1,25 @@
 import numpy as np
 from numpy.linalg import norm
-from numpy.lib.scimath import sqrt
+from scipy.special import digamma
+from classes.TrustModels import BetaDistributionModel
+from classes.PerformanceMetrics import ObservedReward
 
 
 class Estimator:
 
-    def __init__(self, num_iterations=1000, step_size=0.0001,
-                 query_feedback_at=None, error_tol=0.01,
+    def __init__(self, current_model: BetaDistributionModel,
+                 max_iterations=1000, step_size=0.0001, error_tol=0.01,
                  num_sites=40):
         """
         Initializer of the Estimator class
-        :param num_iterations: maximum number of iterations of gradient descent to run before stopping
+        :param max_iterations: maximum number of iterations of gradient descent to run before stopping
         :param step_size: the step_size for the gradient descent algorithm
-        :param query_feedback_at: a list of site numbers at which feedback was queried (default: None, which indicates
-                                    that feedback was asked after every site)
         :param error_tol: the error below which we stop the gradient descent algorithm
         :param num_sites: the number of sites in the mission
         """
 
         self.prior = None
-        self.MAX_ITER = num_iterations
+        self.MAX_ITER = max_iterations
         self.step_size = step_size
         self.define_prior()
         self.error_tol = error_tol
@@ -38,16 +38,9 @@ class Estimator:
                         0.9: [90., 10., 20., 30.],
                         1.0: [98., 2., 20., 30.]}
 
-        self.performance = np.zeros((self.N,), dtype=int)
         self.feedback = np.zeros((self.N+1,), dtype=float)
-        self.query_feedback_at = query_feedback_at
-
-    def reset(self):
-        """
-        Resets the estimator
-        """
-        self.performance = np.zeros((self.N,), dtype=int)
-        self.feedback = np.zeros((self.N+1,), dtype=float)
+        self.keys = ['alpha0', 'beta0', 'vs', 'vf']
+        self.current_model = current_model
 
     def define_prior(self):
         """
@@ -65,7 +58,7 @@ class Estimator:
 
         self.prior = prior
 
-    def get_initial_guess(self, feedback):
+    def get_initial_guess(self, feedback) -> BetaDistributionModel:
         """
         Get a good initial guess to start the gradient descent algorithm.
         The guess is chosen from a list to best estimate the initial value of trust given by the human
@@ -73,45 +66,41 @@ class Estimator:
         """
 
         t = round(feedback * 10) / 10
-        guess_params = self.gp_list[t].copy()
+        guess_params = dict(zip(self.keys, self.gp_list[t].copy()))
+        performance_metric = ObservedReward()
+        trust_model = BetaDistributionModel(guess_params, performance_metric)
+        self.current_model = trust_model
 
-        return guess_params
+        return trust_model
 
-    def get_params(self, initial_guess, performance, trust, current_site):
+    def update_model(self, trust_feedback: float, site_idx: int):
 
         """
         Function to get the updated list of trust parameters
-        :param initial_guess: the guess from which the gradient descent is begun at this stage
-        :param performance: The performance of the drone at the current site.
-        :param trust: The trust feedback of the participant at the current site.
-        :param current_site: the current search site index
+        :param trust_feedback: the trust feedback given by the human after observing the outcome
+        :param site_idx: the index of the site in which search was just completed
         """
 
-        p = performance
-        t = trust
-        self.performance[current_site] = p
-        self.feedback[current_site+1] = t
+        t = trust_feedback
+        self.feedback[site_idx] = t
 
         factor = self.step_size
-        lr = np.array([factor, factor, factor / (current_site+1), factor / (current_site+1)])
+        lr = np.array([factor, factor, factor / (site_idx+1), factor / (site_idx+1)])
 
-        guess_params = initial_guess.copy()  # To keep using current parameters as the initial guess
-        # guess_params = self.get_initial_guess(performance[0], feedback[0])   # To use a new initial guess every time
-
-        if self.query_feedback_at is not None:
-            if current_site not in self.query_feedback_at:
-                return initial_guess
-
-        gradients_except_prior = self.get_grads(guess_params, current_site)
+        guess_params = np.array(list(self.current_model.parameters.values()))
+        gradients_except_prior = self.get_grads(guess_params, site_idx)
         num_iters = 0
 
         while norm(gradients_except_prior) > self.error_tol and num_iters < self.MAX_ITER:
             num_iters += 1
-            gradients_except_prior = self.get_grads(guess_params, current_site)
+            gradients_except_prior = self.get_grads(guess_params, site_idx)
             guess_params += lr * gradients_except_prior
             guess_params[guess_params <= 0.1] = 0.1  # To make sure the digamma function behaves well
 
-        return guess_params
+        new_params = dict(zip(self.keys, guess_params))
+        self.current_model.update_parameters(new_params)
+
+        return self.current_model
 
     def get_grads(self, params, current_site):
         """
@@ -142,12 +131,8 @@ class Estimator:
         for i in range(current_site):
 
             # We need to add the number of successes and failures regardless of whether feedback was queried or not
-            ns += self.performance[i]
-            nf += 1 - self.performance[i]
-
-            if self.query_feedback_at is not None:
-                if i not in self.query_feedback_at:
-                    continue
+            ns += self.current_model.performance_history[i]
+            nf += 1 - self.current_model.performance_history[i]
 
             # If feedback was queried here, compute the gradients
             alpha = alpha_0 + ns * ws
@@ -168,14 +153,14 @@ class Estimator:
         return grads
 
 
-def digamma(x):
-    """
-    An approximation to the digamma function
-    """
-    a = 1 / sqrt(6)
-    b = 6 - 2 * sqrt(6)
-
-    if x < 6.0:
-        return digamma(x + 1) - 1 / x
-
-    return np.log(x + a) - 1 / (b * x)
+# def digamma(x):
+#     """
+#     An approximation to the digamma function
+#     """
+#     a = 1 / sqrt(6)
+#     b = 6 - 2 * sqrt(6)
+#
+#     if x < 6.0:
+#         return digamma(x + 1) - 1 / x
+#
+#     return np.log(x + a) - 1 / (b * x)

@@ -11,7 +11,7 @@ class TrustModelBase:
     def __init__(self):
         pass
 
-    def update(self, recommendation: int, threat: int, threat_level: float, wh: float):
+    def update_trust(self, recommendation: int, threat: int, threat_level: float, wh: float):
         """
         Updates and returns the trust level of the human on the robot.
         Must be implemented by a child class
@@ -56,7 +56,7 @@ class BetaDistributionModel(TrustModelBase):
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
 
-    def update(self, recommendation: int, threat: int, threat_level: float, wh: float):
+    def update_trust(self, recommendation: int, threat: int, threat_level: float, wh: float):
         """
         Updates the mean and sampled trust
         :param recommendation: the recommended action of the system
@@ -73,6 +73,9 @@ class BetaDistributionModel(TrustModelBase):
 
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
+
+    def update_parameters(self, parameters: Dict[str, float]):
+        self.parameters = parameters
 
     def get_performance(self, recommendation: int, threat: int, threat_level: float, wh: float):
         return self.performance_metric.get_performance(recommendation, threat, threat_level, wh)
