@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="plotly" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="phase3sim" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="phase3-sim" project-jdk-type="Python SDK" />
 </project>
