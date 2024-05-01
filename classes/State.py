@@ -22,3 +22,7 @@ class Observation:
     """Represents the information gained after observing the outcome"""
     def __init__(self, threat: int):
         self.threat = threat
+        self.trust_feedback = None
+
+    def add_trust_feedback(self, trust_feedback):
+        self.trust_feedback = trust_feedback

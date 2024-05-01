@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.special import expit
+from classes.State import HumanInfo
 
 
 class RewardModelBase:
@@ -13,10 +14,10 @@ class RewardModelBase:
     def __init__(self):
         pass
 
-    def get_wh(self, **kwargs) -> float:
+    def get_wh(self, info: HumanInfo) -> float:
         """
         Inheriting classes should implement this function to returns the health reward weight
-        :param kwargs: additional keyword arguments associated with specific reward models
+        :param info: the information available to the human at the time of decision-making
         """
         raise NotImplementedError
 
@@ -30,10 +31,9 @@ class ConstantWeights(RewardModelBase):
         super().__init__()
         self.wh = wh
 
-    def get_wh(self, **kwargs) -> float:
+    def get_wh(self, info: HumanInfo) -> float:
         """
-        Inheriting classes should implement this function to return a tuple -> (health-loss-reward, time-loss-reward)
-        :param kwargs: additional keyword arguments associated with specific reward models
+        :param info: the information available to the human at the time of decision-making
         """
 
         return self.wh
@@ -67,14 +67,13 @@ class StateDependentWeights(RewardModelBase):
         if self.add_noise:
             self.rng = np.random.default_rng(seed=123)
 
-    def get_wh(self, **kwargs) -> float:
+    def get_wh(self, info: HumanInfo) -> float:
         """
-        :param kwargs: additional keyword arguments associated with specific reward models
-                        should contain health, time
+        :param info: the information available to the human at the time of decision-making
         :return:
         """
-        health = kwargs['health'] / 100.
-        time = kwargs['time'] / 100.
+        health = info.health / 100.
+        time = info.time / 100.
         x_arr = np.array([health, time], dtype=float).reshape((1, 2))
         x_pd = pd.DataFrame(data=x_arr, columns=['h', 'c'])
         x_scaled = self.scaler.transform(x_pd)

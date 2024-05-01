@@ -2,6 +2,7 @@ from classes.RewardModels import RewardModelBase
 from classes.TrustModels import BetaDistributionModel
 from classes.DecisionModels import BoundedRationalityDisuse
 from classes.ParamsUpdater import Estimator
+from classes.State import HumanInfo, Observation
 
 
 class Human:
@@ -20,14 +21,13 @@ class Human:
         self.decision_model = decision_model
         self.reward_model = reward_model
 
-    def update_trust(self, recommendation: int, threat: int, threat_level: float, wh: float):
+    def update_trust(self, info: HumanInfo, obs: Observation, wh: float):
         """Update trust based on immediate observed reward
-        :param recommendation: recommendation given to the human
-        :param threat: integer representing the presence of threat
-        :param threat_level: a float representing the level of threat
+        :param info: the information available to the human at the time of decision-making
+        :param obs: the observation of the outcome of action selection
         :param wh: the health reward weight of the human
         """
-        self.trust_model.update_trust(recommendation, threat, threat_level, wh)
+        self.trust_model.update_trust(info, obs, wh)
 
     def get_trust_mean(self):
         """Returns the mean level of trust"""
@@ -37,18 +37,15 @@ class Human:
         """Samples trust from the beta distribution"""
         return self.trust_model.trust_sampled
 
-    def choose_action(self, rec: int, threat_level: float, health: int, time: int) -> int:
+    def choose_action(self, info: HumanInfo) -> int:
         """
         Chooses an action
-        :param rec: the system's recommended action [0 or 1]
-        :param threat_level: the level of threat reported by the drone
-        :param health: the current health level of the soldier
-        :param time: the time remaining to complete the mission
+        :param info: the information available to the human at the time of decision-making
         :return: the chosen action 0 or 1
         """
         trust = self.trust_model.trust_sampled
-        wh = self.reward_model.get_wh(health=health, time=time)
-        return self.decision_model.choose_action(rec, trust, wh=wh, threat_level=threat_level)
+        wh = self.reward_model.get_wh(info)
+        return self.decision_model.choose_action(info, trust, wh=wh)
 
 
 class HumanModel(Human):

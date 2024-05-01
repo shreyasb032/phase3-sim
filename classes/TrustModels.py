@@ -1,6 +1,7 @@
 from typing import Dict
 from numpy.random import default_rng
 from classes.PerformanceMetrics import PerformanceMetricBase
+from classes.State import HumanInfo, Observation
 
 
 class TrustModelBase:
@@ -11,13 +12,12 @@ class TrustModelBase:
     def __init__(self):
         pass
 
-    def update_trust(self, recommendation: int, threat: int, threat_level: float, wh: float):
+    def update_trust(self, info: HumanInfo, obs: Observation, wh: float):
         """
         Updates and returns the trust level of the human on the robot.
         Must be implemented by a child class
-        :param recommendation: the recommended action of the system
-        :param threat: an integer representing the observed presence of threat inside the site
-        :param threat_level: the threat level reported by the drone
+        :param info: the information available to the human at the time of decision-making
+        :param obs: the observation of the outcome of action selection
         :param wh: the health reward weight of the human
         """
         raise NotImplementedError
@@ -56,15 +56,15 @@ class BetaDistributionModel(TrustModelBase):
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
 
-    def update_trust(self, recommendation: int, threat: int, threat_level: float, wh: float):
+    def update_trust(self, info: HumanInfo, obs: Observation, wh: float):
         """
-        Updates the mean and sampled trust
-        :param recommendation: the recommended action of the system
-        :param threat: an integer representing the observed presence of threat inside the site
-        :param threat_level: the threat level reported by the drone
+        Updates and returns the trust level of the human on the robot.
+        Must be implemented by a child class
+        :param info: the information available to the human at the time of decision-making
+        :param obs: the observation of the outcome of action selection
         :param wh: the health reward weight of the human
         """
-        performance = self.performance_metric.get_performance(recommendation, threat, threat_level, wh)
+        performance = self.performance_metric.get_performance(info, obs, wh)
         self.num_successes += performance
         self.num_failures += (1 - performance)
         self.performance_history.append(performance)
@@ -77,5 +77,5 @@ class BetaDistributionModel(TrustModelBase):
     def update_parameters(self, parameters: Dict[str, float]):
         self.parameters = parameters
 
-    def get_performance(self, recommendation: int, threat: int, threat_level: float, wh: float):
-        return self.performance_metric.get_performance(recommendation, threat, threat_level, wh)
+    def get_performance(self, info: HumanInfo, obs: Observation, wh: float):
+        return self.performance_metric.get_performance(info, obs, wh)

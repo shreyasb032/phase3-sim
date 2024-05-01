@@ -1,6 +1,7 @@
-from typing import Set
 from numpy.random import default_rng
 from scipy.special import expit
+from classes.State import HumanInfo
+from classes.RewardModels import RewardModelBase
 
 
 class DecisionModelBase:
@@ -14,10 +15,10 @@ class DecisionModelBase:
         """
         self.rng = default_rng(seed)
 
-    def choose_action(self, recommendation: int, trust: float, **kwargs):
+    def choose_action(self, info: HumanInfo, trust: float, **kwargs):
         """
         Chooses an action given the recommendation, the trust, and the set of possible actions
-        :param recommendation: The recommended action by the system
+        :param info: The information available to the human
         :param trust: The trust of the human on the robot
         :param kwargs: additional keyword arguments associated with specific decision models
         :return:
@@ -41,25 +42,25 @@ class BoundedRationalityDisuse(DecisionModelBase):
         self.wc = None
         self.threat_level = None
 
-    def choose_action(self, recommendation: int, trust: float, **kwargs) -> int:
+    def choose_action(self, info: HumanInfo, trust: float, **kwargs) -> int:
         """
-        :param recommendation: The recommended action by the system
+        :param info: The information available to the human while making a decision
         :param trust: The trust of the human on the robot
         :param kwargs: additional keyword arguments associated with specific decision models
-                        should contain: wh, threat_level
+                        should contain: wh
         :return: Chosen action
         """
 
         r = self.rng.random()
         # With probability equal to trust, return the recommended action
         if r < trust:
-            return recommendation
+            return info.recommendation
 
         # else, choose according to bounded rationality
 
         self.wh = kwargs['wh']
         self.wc = 1 - self.wh
-        self.threat_level = kwargs['threat_level']
+        self.threat_level = info.threat_level
 
         self.reward_0 = -self.threat_level * self.wh
         self.reward_1 = -self.wc
