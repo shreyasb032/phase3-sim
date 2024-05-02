@@ -58,8 +58,8 @@ class HumanModel(Human):
         super().__init__(trust_model, decision_model, reward_model)
         self.trust_model_updater = Estimator(self.trust_model)
 
-    def update_trust_model(self, trust_feedback: float, site_idx: int):
-        self.trust_model = self.trust_model_updater.update_model(trust_feedback, site_idx)
+    def update_trust_model(self, trust_feedback: float):
+        self.trust_model = self.trust_model_updater.update_model(trust_feedback)
 
 # class ReversePsychology(HumanBase):
 #     """The reverse psychology model of human behavior"""

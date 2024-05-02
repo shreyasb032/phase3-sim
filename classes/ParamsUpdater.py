@@ -8,7 +8,7 @@ from classes.PerformanceMetrics import ObservedReward
 class Estimator:
 
     def __init__(self, current_model: BetaDistributionModel,
-                 max_iterations=1000, step_size=0.0001, error_tol=0.01,
+                 max_iterations=10000, step_size=0.01, error_tol=0.01,
                  num_sites=5):
         """
         Initializer of the Estimator class
@@ -38,7 +38,8 @@ class Estimator:
                         0.9: [90., 10., 20., 30.],
                         1.0: [98., 2., 20., 30.]}
 
-        self.feedback = np.zeros((self.N+1,), dtype=float)
+        # self.feedback = np.zeros((self.N+1,), dtype=float)
+        self.feedback = []
         self.keys = ['alpha0', 'beta0', 'vs', 'vf']
         self.current_model = current_model
 
@@ -73,27 +74,28 @@ class Estimator:
 
         return trust_model
 
-    def update_model(self, trust_feedback: float, site_idx: int):
+    def update_model(self, trust_feedback: float):
 
         """
         Function to get the updated list of trust parameters
         :param trust_feedback: the trust feedback given by the human after observing the outcome
-        :param site_idx: the index of the site in which search was just completed
+        # :param site_idx: the index of the site in which search was just completed
         """
 
         t = trust_feedback
-        self.feedback[site_idx] = t
+        # self.feedback[site_idx] = t
+        self.feedback.append(t)
 
         factor = self.step_size
-        lr = np.array([factor, factor, factor / (site_idx+1), factor / (site_idx+1)])
+        lr = np.array([factor, factor, factor / self.N, factor / self.N])
 
         guess_params = np.array(list(self.current_model.parameters.values()))
-        gradients_except_prior = self.get_grads(guess_params, site_idx)
+        gradients_except_prior = self.get_grads(guess_params)
         num_iters = 0
 
         while norm(gradients_except_prior) > self.error_tol and num_iters < self.MAX_ITER:
             num_iters += 1
-            gradients_except_prior = self.get_grads(guess_params, site_idx)
+            gradients_except_prior = self.get_grads(guess_params)
             guess_params += lr * gradients_except_prior
             guess_params[guess_params <= 0.1] = 0.1  # To make sure the digamma function behaves well
 
@@ -102,11 +104,11 @@ class Estimator:
 
         return self.current_model
 
-    def get_grads(self, params, current_site):
+    def get_grads(self, params):
         """
         Returns the gradients of the log-likelihood function using a digamma approximation
         :param params: the trust parameters at which to evaluate the gradients
-        :param current_site: the index of the current search site
+        # :param current_site: the index of the current search site
         """
 
         grads = np.zeros((4,))
@@ -118,21 +120,21 @@ class Estimator:
         ns = 0
         nf = 0
 
-        digamma_both = digamma(alpha_0 + beta_0)
-        digamma_alpha = digamma(alpha_0)
-        digamma_beta = digamma(beta_0)
+        # digamma_both = digamma(alpha_0 + beta_0)
+        # digamma_alpha = digamma(alpha_0)
+        # digamma_beta = digamma(beta_0)
+        #
+        # delta_alpha = digamma_both - digamma_alpha + np.log(max(self.feedback[0], 0.01))
+        # delta_beta = digamma_both - digamma_beta + np.log(max(1 - self.feedback[0], 0.01))
+        #
+        # grads[0] += delta_alpha
+        # grads[1] += delta_beta
 
-        delta_alpha = digamma_both - digamma_alpha + np.log(max(self.feedback[0], 0.01))
-        delta_beta = digamma_both - digamma_beta + np.log(max(1 - self.feedback[0], 0.01))
-
-        grads[0] += delta_alpha
-        grads[1] += delta_beta
-
-        for i in range(current_site):
+        for i in range(len(self.feedback)):
 
             # We need to add the number of successes and failures regardless of whether feedback was queried or not
             ns += self.current_model.performance_history[i]
-            nf += 1 - self.current_model.performance_history[i]
+            nf += (1 - self.current_model.performance_history[i])
 
             # If feedback was queried here, compute the gradients
             alpha = alpha_0 + ns * ws
@@ -142,8 +144,8 @@ class Estimator:
             digamma_alpha = digamma(alpha)
             digamma_beta = digamma(beta)
 
-            delta_alpha = digamma_both - digamma_alpha + np.log(max(self.feedback[i+1], 0.01))
-            delta_beta = digamma_both - digamma_beta + np.log(max(1 - self.feedback[i+1], 0.01))
+            delta_alpha = digamma_both - digamma_alpha + np.log(max(self.feedback[i], 0.01))
+            delta_beta = digamma_both - digamma_beta + np.log(max(1 - self.feedback[i], 0.01))
 
             grads[0] += delta_alpha
             grads[1] += delta_beta

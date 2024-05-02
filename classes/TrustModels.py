@@ -45,13 +45,8 @@ class BetaDistributionModel(TrustModelBase):
         self.num_failures = 0
         self.performance_metric = performance_metric
 
-        self.alpha_0 = self.parameters['alpha0']
-        self.beta_0 = self.parameters['beta0']
-        self.vs = self.parameters['vs']
-        self.vf = self.parameters['vf']
-
-        self.alpha = self.alpha_0
-        self.beta = self.beta_0
+        self.alpha = self.parameters['alpha0']
+        self.beta = self.parameters['beta0']
 
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
@@ -68,14 +63,18 @@ class BetaDistributionModel(TrustModelBase):
         self.num_successes += performance
         self.num_failures += (1 - performance)
         self.performance_history.append(performance)
-        self.alpha = self.alpha_0 + self.num_successes * self.vs
-        self.beta = self.beta_0 + self.num_failures * self.vf
+        self.alpha = self.parameters['alpha0'] + self.num_successes * self.parameters['vs']
+        self.beta = self.parameters['beta0'] + self.num_failures * self.parameters['vf']
 
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
 
     def update_parameters(self, parameters: Dict[str, float]):
         self.parameters = parameters
+        self.alpha = self.parameters['alpha0'] + self.num_successes * self.parameters['vs']
+        self.beta = self.parameters['beta0'] + self.num_failures * self.parameters['vf']
+        self.trust_mean = self.alpha / (self.alpha + self.beta)
+        self.trust_sampled = self.rng.beta(self.alpha, self.beta)
 
     def get_performance(self, info: HumanInfo, obs: Observation, wh: float):
         return self.performance_metric.get_performance(info, obs, wh)
