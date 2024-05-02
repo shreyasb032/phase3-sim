@@ -10,10 +10,10 @@ class Robot:
 
     def __init__(self, human_model: Human,
                  reward_model: RewardModelBase,
-                 info: SimSettings):
+                 settings: SimSettings):
         self.human_model = human_model
         self.reward_model = reward_model
-        self.info = info
+        self.settings = settings
 
     def get_recommendation(self, health: int, time: int):
         pass

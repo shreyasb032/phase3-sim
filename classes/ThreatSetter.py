@@ -7,7 +7,7 @@ class ThreatSetter:
     Class to set all threat levels: prior_levels, after_scan_levels, and threats
     """
     
-    def __init__(self, num_sites=40, prior=0.3, seed=None):
+    def __init__(self, num_sites=5, prior=0.3, seed=None):
         """
         :param num_sites: number of sites in the mission
         :param prior: the prior threat level at any of the search sites

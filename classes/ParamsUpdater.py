@@ -9,7 +9,7 @@ class Estimator:
 
     def __init__(self, current_model: BetaDistributionModel,
                  max_iterations=1000, step_size=0.0001, error_tol=0.01,
-                 num_sites=40):
+                 num_sites=5):
         """
         Initializer of the Estimator class
         :param max_iterations: maximum number of iterations of gradient descent to run before stopping
