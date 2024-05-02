@@ -21,6 +21,12 @@ class Human:
         self.decision_model = decision_model
         self.reward_model = reward_model
 
+    def forward(self, info: HumanInfo, obs: Observation):
+        """
+        Updates the human after seeing the observation
+        """
+        self.update_trust(info, obs, self.reward_model.get_wh(info))
+
     def update_trust(self, info: HumanInfo, obs: Observation, wh: float):
         """Update trust based on immediate observed reward
         :param info: the information available to the human at the time of decision-making

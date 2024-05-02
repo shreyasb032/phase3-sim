@@ -1,21 +1,23 @@
 class HumanInfo:
     """Represents the information available to the human"""
     def __init__(self, health: int, time: int, threat_level: float,
-                 recommendation: int):
+                 recommendation: int, site_idx: int):
         self.health = health
         self.time = time
         self.threat_level = threat_level
         self.recommendation = recommendation
+        self.site_idx = site_idx
 
 
 class RobotInfo:
     """Represents the information available to the robot"""
     def __init__(self, health: int, time: int, threat_level: float,
-                 threat_level_prior: float):
+                 threat_level_prior: float, site_idx: int):
         self.health = health
         self.time = time
         self.threat_level = threat_level
         self.prior_threat_level = threat_level_prior
+        self.site_idx = site_idx
 
 
 class Observation:
