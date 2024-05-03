@@ -11,6 +11,7 @@ class RobotOnly:
     """
     A class for a task where the robot is doing the ISR mission by itself
     """
+
     def __init__(self, reward_model: RewardModelBase,
                  settings: SimSettings):
         """
@@ -28,9 +29,9 @@ class RobotOnly:
         """
         pass
 
-    def forward(self, info: RobotInfo, obs: Observation):
-        """Updates the robot model after seeing the observations"""
-        pass
+    # def forward(self, info: RobotInfo, obs: Observation):
+    #     """Updates the robot model after seeing the observations"""
+    #     pass
 
 
 class Robot:
@@ -47,7 +48,16 @@ class Robot:
         Generates a recommendation from the information the robot has
         :param info: the information available to the robot when making a recommendation
         """
-        pass
+        num_houses_to_go = self.settings.num_sites - info.site_idx
+        value_matrix = np.zeros((num_houses_to_go + 1,          # stages
+                                 num_houses_to_go + 1,                # health
+                                 num_houses_to_go + 1), dtype=float)  # time
+        action_matrix = np.zeros((num_houses_to_go,
+                                  num_houses_to_go,
+                                  num_houses_to_go), dtype=int)
+
+        for site in reversed(range(num_houses_to_go)):
+            possible_successes = np.arange(site)
 
     def forward(self, info: RobotInfo, obs: Observation):
         """Updates the robot model after seeing the observations.
