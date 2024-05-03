@@ -1,6 +1,4 @@
-from typing import Dict, List
 import numpy as np
-from copy import copy
 from classes.RewardModels import RewardModelBase
 from classes.HumanModels import Human
 from classes.Simulation import SimSettings

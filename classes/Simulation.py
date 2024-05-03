@@ -1,6 +1,6 @@
 from classes.ThreatSetter import ThreatSetter
-from classes.POMDPSolver import Solver
 from classes.HumanModels import Human
+# from classes.RobotModel import Robot
 
 
 class SimSettings:
@@ -18,13 +18,13 @@ class SimSettings:
         self.threat_setter.set_threats()
 
 
-class Simulation:
-    """Class for a single simulation"""
-
-    def __init__(self, settings: SimSettings, robot: Solver, human: Human):
-        self.settings = settings
-        self.robot = robot
-        self.human = human
-
-    def run(self):
-        pass
+# class Simulation:
+#     """Class for a single simulation"""
+#
+#     def __init__(self, settings: SimSettings, robot: Robot, human: Human):
+#         self.settings = settings
+#         self.robot = robot
+#         self.human = human
+#
+#     def run(self):
+#         pass
