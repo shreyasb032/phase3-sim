@@ -4,7 +4,7 @@ from copy import copy
 from classes.RewardModels import RewardModelBase
 from classes.HumanModels import Human
 from classes.Simulation import SimSettings
-from classes.State import RobotInfo, Observation
+from classes.State import RobotInfo, Observation, HumanInfo
 
 
 class RobotOnly:
@@ -27,7 +27,51 @@ class RobotOnly:
         Chooses an action based on the information available
         :param info: the information available to the robot while choosing an action
         """
-        pass
+        num_sites = self.settings.num_sites
+        current_idx = info.site_idx
+        number_of_sites_to_go = num_sites - current_idx
+        value_matrix = np.zeros((
+            number_of_sites_to_go + 1,   # stages
+            number_of_sites_to_go + 1,   # possible health
+            number_of_sites_to_go + 1    # possible time
+        ))
+
+        action_matrix = np.zeros((
+            number_of_sites_to_go,
+            number_of_sites_to_go,
+            number_of_sites_to_go
+        ))
+
+        for stage in reversed(range(number_of_sites_to_go)):
+            possible_health = info.health - np.arange(stage+1) * 10
+            possible_time = info.time - np.arange(stage+1) * 10
+            for health_idx, health in enumerate(possible_health):
+                for time_idx, time in enumerate(possible_time):
+                    temp_info = HumanInfo(health, time, info.threat_level, -1, info.site_idx)
+                    wh = self.rewards_model.get_wh(temp_info)
+                    wc = 1 - wh
+
+                    reward_0 = -wh * info.threat_level             # One-step expected reward for action 0
+                    reward_1 = -wc                                 # One-step expected reward for action 0
+
+                    threat_level = info.prior_threat_level
+                    if stage == 0:                             # If at the current site, use the updated threat level
+                        threat_level = info.threat_level
+
+                    value_0 = (reward_0 +
+                               self.settings.df * (threat_level * value_matrix[stage+1, health_idx+1, time_idx] +
+                                                   (1 - threat_level) * value_matrix[stage+1, health_idx, time_idx]))
+                    value_1 = (reward_1 +
+                               self.settings.df * value_matrix[stage+1, health_idx, time_idx + 1])
+
+                    if value_0 >= value_1:
+                        value_matrix[stage, health_idx, time_idx] = value_0
+                        action_matrix[stage, health_idx, time_idx] = 0
+                    else:
+                        value_matrix[stage, health_idx, time_idx] = value_1
+                        action_matrix[stage, health_idx, time_idx] = 1
+
+        return action_matrix[0, 0, 0]
 
     # def forward(self, info: RobotInfo, obs: Observation):
     #     """Updates the robot model after seeing the observations"""

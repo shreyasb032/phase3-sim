@@ -28,3 +28,13 @@ class Observation:
 
     def add_trust_feedback(self, trust_feedback):
         self.trust_feedback = trust_feedback
+
+
+class State:
+    """Represents a state"""
+    def __init__(self, health, time):
+        self.health = health
+        self.time = time
+
+        # A unique index given to each state
+        self.idx = self.health * 101 + self.time
