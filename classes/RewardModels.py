@@ -86,4 +86,4 @@ class StateDependentWeights(RewardModelBase):
             wh += self.rng.normal(loc=0.0, scale=0.05)
             wh = max(0.501, wh)
 
-        return wh
+        return wh.item()

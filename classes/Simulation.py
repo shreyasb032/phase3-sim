@@ -17,6 +17,10 @@ class SimSettings:
         self.threat_setter = ThreatSetter(num_sites, prior_threat_level, threat_seed)
         self.threat_setter.set_threats()
 
+    def update_threats(self, prior_threat_level: float, threat_seed: int = 123):
+        self.threat_setter = ThreatSetter(self.num_sites, prior_threat_level, threat_seed)
+        self.threat_setter.set_threats()
+
 
 # class Simulation:
 #     """Class for a single simulation"""

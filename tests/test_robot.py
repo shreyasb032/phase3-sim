@@ -6,7 +6,7 @@ from classes.State import RobotInfo, HumanInfo
 from numpy.random import default_rng
 
 
-rng = default_rng(200)
+rng = default_rng()
 
 num_sites = 5
 start_health = 100
@@ -37,9 +37,10 @@ wh_sd = reward_model2.get_wh(fake_human_info)
 d_2_star = (1 - wh_sd) / wh_sd
 
 # threat_level = settings.threat_setter.after_scan[0]
-threat_level = rng.uniform(low=d_1_star, high=d_2_star)[0]
+threat_level = rng.uniform(low=d_1_star, high=d_2_star)
 info = RobotInfo(health, time, threat_level, settings.d, 0)
 rec1 = robot1.choose_action(info)
 rec2 = robot2.choose_action(info)
 
+print(rf"$d_1^*$: {d_1_star}, $d_2^*$: {d_2_star}")
 print(f"Threat level {round(threat_level, 2)}, rec1 {rec1}, rec2 {rec2}")

@@ -22,7 +22,7 @@ d_star_div = html.Div(children=[
 d_hat_div = html.Div(children=[
     html.Div(children=[
         r"\hat{d}: ",
-        dcc.Input(value=0.7, type="number", min=0.0, max=1.0, step=0.01, id='d-hat-input'),
+        dcc.Input(value=0.2, type="number", min=0.0, max=1.0, step=0.01, id='d-hat-input'),
     ])
 ], style={'flex': 1, 'padding': 20})
 

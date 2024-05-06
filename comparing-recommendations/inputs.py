@@ -65,7 +65,7 @@ wh_slider = dcc.Slider(min=0.0, max=1.0, step=0.05,
                            0.8: '0.8',
                            1.0: '1.0'
                        },
-                       value=0.75,
+                       value=0.87,
                        id='wh-slider',
                        tooltip={"placement": "bottom", "always_visible": True})
 
