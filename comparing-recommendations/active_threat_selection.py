@@ -3,11 +3,11 @@ state-dependent weights robots are different"""
 
 import _context
 from layout import app
-from classes.State import HumanInfo, RobotInfo, Observation
+from classes.State import RobotInfo
 from classes.Simulation import SimSettings
 from classes.RewardModels import ConstantWeights, StateDependentWeights
 from classes.RobotModel import RobotOnly
-from dash import Input, Output, State
+from dash import Input, Output
 
 num_sites = 5
 start_health = 100
