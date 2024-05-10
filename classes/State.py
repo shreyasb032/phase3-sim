@@ -22,8 +22,9 @@ class RobotInfo:
 
 class Observation:
     """Represents the information gained after observing the outcome"""
-    def __init__(self, threat: int):
+    def __init__(self, threat: int, action_chosen: int):
         self.threat = threat
+        self.action_chosen = action_chosen
         self.trust_feedback = None
 
     def add_trust_feedback(self, trust_feedback):

@@ -40,7 +40,7 @@ def update_const_recommendation(d_hat, d):
     time = settings.start_time
     info = RobotInfo(health, time, d_hat, d, 0)
     action = const_robot.choose_action(info)
-    return f"constant recommendation: {action}"
+    return f"constant optimal action: {action}"
 
 
 @app.callback(
@@ -57,7 +57,7 @@ def update_state_dep_recommendation(d_hat, d, h, c):
     state_dep_robot.settings = settings
     info = RobotInfo(h, c, d_hat, d, 0)
     action = state_dep_robot.choose_action(info)
-    return f"state dependent recommendation: {action}"
+    return f"state dependent optimal action: {action}"
 
 
 if __name__ == "__main__":
