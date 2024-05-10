@@ -13,7 +13,10 @@ from classes.TrustModels import BetaDistributionModel
 from classes.DecisionModels import BoundedRationalityDisuse
 from dash import Input, Output
 from copy import deepcopy
+from numpy.random import default_rng
 
+
+rng = default_rng(seed=123)
 num_sites = 5
 start_health = 100
 start_time = 100
@@ -50,14 +53,17 @@ state_dep_robot = Robot(human_model, state_dep_reward_model, settings)
 @app.callback(
     Output(component_id='constant-rec', component_property='children'),
     Input(component_id='d-hat-input', component_property='value'),
-    Input(component_id='threat-level-slider', component_property='value')
+    Input(component_id='threat-level-slider', component_property='value'),
+    Input(component_id='wh-slider', component_property='value')
 )
-def update_const_recommendation(d_hat, d):
+def update_const_recommendation(d_hat, d, _wh):
     settings.update_threats(d)
     const_robot.settings = settings
     health = settings.start_health
     time = settings.start_time
     info = RobotInfo(health, time, d_hat, d, 0)
+    const_reward_model_new = ConstantWeights(wh=_wh)
+    const_robot.reward_model = const_reward_model_new
     action = const_robot.get_recommendation(info)
     return f"constant recommendation: {action}"
 
