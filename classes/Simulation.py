@@ -1,7 +1,9 @@
+from numpy.random import default_rng
 from classes.HumanModels import Human
 from classes.RobotModel import Robot
 from classes.State import HumanInfo, RobotInfo, Observation
 from classes.SimSettings import SimSettings
+from classes.ThreatSetter import SmartThreatChooser
 
 
 class Simulation:
@@ -17,6 +19,10 @@ class Simulation:
         self.action_history = []
         self.rec_history = []
         self.trust_history = []
+        self.threat_history = []
+        self.threat_level_history = []
+        self.smc = SmartThreatChooser()
+        self.rng = default_rng()
 
     def run(self):
         """
@@ -29,12 +35,20 @@ class Simulation:
         prior = self.settings.d
 
         for site_idx in range(self.settings.num_sites):
+            temp_human_info = HumanInfo(health, time, 0, 0, site_idx)
+            wh = self.robot.reward_model.get_wh(temp_human_info)
+            threat = threats[site_idx]
             threat_level = after_scan[site_idx]
+            if self.rng.uniform() < 0.5:
+                threat, threat_level = self.smc.choose_threat_intelligently(0.85, wh)
+            self.threat_history.append(threat)
+            self.threat_level_history.append(threat_level)
+            # threat_level = after_scan[site_idx]
             robot_info = RobotInfo(health, time, threat_level, prior, site_idx)
             rec = self.robot.get_recommendation(robot_info)
             human_info = HumanInfo(health, time, threat_level, rec, site_idx)
             action = self.human.choose_action(human_info)
-            threat = threats[site_idx]
+            # threat = threats[site_idx]
             obs = Observation(threat, action)
 
             # Update the human's trust

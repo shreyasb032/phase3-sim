@@ -71,5 +71,30 @@ def main():
         print(setter.threats[i], setter.prior[i], setter.after_scan[i])
 
 
+class SmartThreatChooser:
+
+    def __init__(self, seed:int = 123):
+        self.rng = default_rng(seed)
+
+    def choose_threat_intelligently(self, wh_const: float, wh_state_dep: float):
+        """
+        Chooses threats and threat levels intelligently to showcase the difference between
+        the two strategies
+        """
+        d_star_const = (1 - wh_const) / wh_const
+        d_star_state_dep = (1 - wh_state_dep) / wh_state_dep
+        d_low = min(d_star_const, d_star_state_dep)
+        d_high = max(d_star_const, d_star_state_dep)
+
+        # Clip the low value to 0
+        d_low = max(0., d_low)
+        # Clip the high value to 1.0
+        d_high = min(d_high, 1.0)
+        threat_level = self.rng.uniform(d_low, d_high)
+        threat = self.rng.binomial(1, threat_level)
+
+        return threat, threat_level
+
+
 if __name__ == "__main__":
     main()
