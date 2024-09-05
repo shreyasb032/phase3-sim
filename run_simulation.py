@@ -18,16 +18,11 @@ class SimRunner:
     """
     Sets up and runs the simulation
     """
-    def __init__(self):
+    def __init__(self, settings: SimSettings):
         self.sim = None
-        self.sim_settings = None
+        self.sim_settings = settings
         self.robot = None
         self.human = None
-
-    def init_settings(self, num_sites: int = 10, start_health: int = 100, start_time: int = 0,
-                      prior_threat_level: float = 0.7, discount_factor: float = 0.7):
-        self.sim_settings = SimSettings(num_sites, start_health, start_time, prior_threat_level, discount_factor,
-                                        threat_seed=123)
 
     def init_robot(self):
 
@@ -66,7 +61,6 @@ class SimRunner:
         self.human = Human(trust_model, decision_model, reward_model)
 
     def init_sim(self):
-        self.init_settings()
         self.init_robot()
         self.init_human()
         self.sim = Simulation(self.sim_settings, self.robot, self.human)
@@ -96,14 +90,23 @@ class SimRunner:
                 'Threat': self.sim_settings.threat_setter.threats,
                 'Threat level': self.sim_settings.threat_setter.after_scan, 'Health': self.sim.health_history[1:],
                 'Time': self.sim.time_history[1:], 'Recommendation': self.sim.rec_history,
-                'Trust': self.sim.trust_history, 'Action': self.sim.action_history}
+                'Trust': self.sim.trust_history, 'Action': self.sim.action_history,
+                'wh': wh_list}
 
         df = pd.DataFrame(data)
         print(df)
 
 
 def main():
-    sim_runner = SimRunner()
+    num_sites = 15
+    start_health = 100
+    start_time = 0
+    prior_threat_level = 0.7
+    discount_factor = 0.8
+
+    settings = SimSettings(num_sites, start_health, start_time, prior_threat_level, discount_factor,
+                           threat_seed=123)
+    sim_runner = SimRunner(settings)
     sim_runner.run()
     sim_runner.print_results()
 
