@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Dict
 import json
 import os.path as path
 
@@ -9,7 +8,9 @@ prob_oscillator = 1.0 - prob_bdm - prob_disbeliever
 
 
 class TrustParamsGenerator:
-
+    """
+    Uses the data from phase 1 of the study to sample trust parameters
+    """
     def __init__(self, seed=123, add_noise=False):
         self.params_list = None
         self.seed = seed
@@ -22,7 +23,7 @@ class TrustParamsGenerator:
         self.oscillator_dict = None
         self.disbeliever_dict = None
 
-        parent_directory = path.join('..', 'human-subjects-data')
+        parent_directory = path.join('.', 'human-subjects-data')
 
         bdm_file = path.join(parent_directory, 'bdm.json')
         oscillator_file = path.join(parent_directory, 'oscillator.json')

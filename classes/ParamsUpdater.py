@@ -6,6 +6,9 @@ from classes.PerformanceMetrics import ObservedReward
 
 
 class Estimator:
+    """
+    Estimates the trust parameters after getting trust feedback from the human
+    """
 
     def __init__(self, current_model: BetaDistributionModel,
                  max_iterations=10000, step_size=0.01, error_tol=0.01,
@@ -120,16 +123,6 @@ class Estimator:
         ns = 0
         nf = 0
 
-        # digamma_both = digamma(alpha_0 + beta_0)
-        # digamma_alpha = digamma(alpha_0)
-        # digamma_beta = digamma(beta_0)
-        #
-        # delta_alpha = digamma_both - digamma_alpha + np.log(max(self.feedback[0], 0.01))
-        # delta_beta = digamma_both - digamma_beta + np.log(max(1 - self.feedback[0], 0.01))
-        #
-        # grads[0] += delta_alpha
-        # grads[1] += delta_beta
-
         for i in range(len(self.feedback)):
 
             # We need to add the number of successes and failures regardless of whether feedback was queried or not
@@ -153,16 +146,3 @@ class Estimator:
             grads[3] += nf * delta_beta
 
         return grads
-
-
-# def digamma(x):
-#     """
-#     An approximation to the digamma function
-#     """
-#     a = 1 / sqrt(6)
-#     b = 6 - 2 * sqrt(6)
-#
-#     if x < 6.0:
-#         return digamma(x + 1) - 1 / x
-#
-#     return np.log(x + a) - 1 / (b * x)

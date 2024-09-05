@@ -32,8 +32,9 @@ threat_level = 0.8
 health = 90
 time = 90
 
-info = HumanInfo(health, time, threat_level, recommendation)
-observation = Observation(threat)
+info = HumanInfo(health, time, threat_level, recommendation, site_idx=0)
+action = human.choose_action(info)
+observation = Observation(threat, action)
 
 human.update_trust(info, observation, reward_model.get_wh(info))
 trust = human.get_trust_mean()
@@ -43,9 +44,9 @@ trust_est_before_update = human_model.get_trust_mean()
 human_model.update_trust_model(trust)
 trust_est_after_update = human_model.get_trust_mean()
 
+print(f"Trust mean: {trust:.2f}")
+print(f"Trust estimate before update: {trust_est_before_update:.2f}")
+print(f"Trust estimate after update: {trust_est_after_update:.2f}")
 
-print(trust)
-print(trust_est_before_update, trust_est_after_update)
-
-print(human.trust_model.parameters)
-print(human_model.trust_model.parameters)
+print("True trust parameters:", human.trust_model.parameters)
+print("Estimated trust parameters:", human_model.trust_model.parameters)

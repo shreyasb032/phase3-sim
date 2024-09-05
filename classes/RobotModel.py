@@ -1,7 +1,7 @@
 import numpy as np
 from classes.RewardModels import RewardModelBase
 from classes.HumanModels import HumanModel
-from classes.Simulation import SimSettings
+from classes.SimSettings import SimSettings
 from classes.State import RobotInfo, Observation, HumanInfo
 
 
@@ -71,6 +71,7 @@ class RobotOnly:
 
         return action_matrix[0, 0, 0]
 
+
 class Robot:
 
     def __init__(self, human_model: HumanModel,
@@ -109,7 +110,7 @@ class Robot:
             possible_times = current_time + np.arange(stage + 1) * 10
 
             df = self.settings.df
-            threat_level = self.settings.d
+            threat_level = info.prior_threat_level
             if stage == 0:
                 threat_level = info.threat_level
 
@@ -132,13 +133,13 @@ class Robot:
                         # Future discounted value for recommending to not use the RARV
                         value_0 = (reward_0 +
                                    # Trust gain, no Health loss, no time loss
-                                   df * prob_0 * (1 - threat_level) * value_matrix[stage+1, i, j, k] +
+                                   df * prob_0 * (1 - threat_level) * value_matrix[stage + 1, i, j, k] +
                                    # Trust gain, no Health loss, time loss
-                                   df * prob_1 * threat_level * value_matrix[stage+1, i, j, k+1] +
+                                   df * prob_1 * threat_level * value_matrix[stage + 1, i, j, k + 1] +
                                    # Trust loss, no Health loss, time loss
-                                   df * prob_1 * (1 - threat_level) * value_matrix[stage+1, i+1, j, k+1] +
+                                   df * prob_1 * (1 - threat_level) * value_matrix[stage + 1, i + 1, j, k + 1] +
                                    # Trust loss, Health loss, no time loss
-                                   df * prob_0 * threat_level * value_matrix[stage+1, i+1, j+1, k])
+                                   df * prob_0 * threat_level * value_matrix[stage + 1, i + 1, j + 1, k])
 
                         # Computations for recommending to use the RARV
                         fake_human_info.recommendation = 1
@@ -147,13 +148,13 @@ class Robot:
                         reward_1 = -wh * threat_level * prob_0 - wc * prob_1
                         value_1 = (reward_1 +
                                    # Trust gain, no Health loss, no time loss
-                                   df * prob_0 * (1 - threat_level) * value_matrix[stage+1, i, j, k] +
+                                   df * prob_0 * (1 - threat_level) * value_matrix[stage + 1, i, j, k] +
                                    # Trust gain, no Health loss, time loss
-                                   df * prob_1 * threat_level * value_matrix[stage+1, i, j, k+1] +
+                                   df * prob_1 * threat_level * value_matrix[stage + 1, i, j, k + 1] +
                                    # Trust loss, no Health loss, time loss
-                                   df * prob_1 * (1 - threat_level) * value_matrix[stage+1, i+1, j, k+1] +
+                                   df * prob_1 * (1 - threat_level) * value_matrix[stage + 1, i + 1, j, k + 1] +
                                    # Trust loss, Health loss, no time loss
-                                   df * prob_0 * threat_level * value_matrix[stage+1, i+1, j+1, k])
+                                   df * prob_0 * threat_level * value_matrix[stage + 1, i + 1, j + 1, k])
 
                         if value_0 > value_1:
                             value_matrix[stage, i, j, k] = value_0

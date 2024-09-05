@@ -1,5 +1,3 @@
-from typing import Dict
-from classes.RewardModels import RewardModelBase
 from classes.State import HumanInfo, Observation
 
 

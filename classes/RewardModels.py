@@ -81,9 +81,10 @@ class StateDependentWeights(RewardModelBase):
         x_scaled_with_constant = np.insert(x_scaled, 0, 1., axis=1)
         y = x_scaled_with_constant @ self.ols_results.params
         wh = expit(y)
+        wh = wh.item()
 
         if self.add_noise:
             wh += self.rng.normal(loc=0.0, scale=0.05)
             wh = max(0.501, wh)
 
-        return wh.item()
+        return wh
