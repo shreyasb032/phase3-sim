@@ -1,6 +1,7 @@
 # Goal - compare a non-adaptive strategy with constant weights from the informed prior
 #        and one with the learnt state-dependent reward weights (still non-adaptive)
-
+import numpy as np
+import pandas as pd
 from classes.SimSettings import SimSettings
 from classes.Simulation import Simulation
 from classes.RobotModel import Robot
@@ -75,18 +76,30 @@ class SimRunner:
         self.sim.run()
 
     def print_results(self):
-        print("Site no., Health, Time, Trust, Recommendation, Action, wh")
-        print(f"{0:<7}, {100: <7}, {0: <5}")
-        trust_history = self.sim.trust_history
+        # print("Site no., Health, Time, Trust, Recommendation, Action, wh")
+        # print(f"{0:<7}, {100: <7}, {0: <5}")
+        # trust_history = self.sim.trust_history
         health_history = self.sim.health_history
         time_history = self.sim.time_history
         rec_history = self.sim.rec_history
-        action_history = self.sim.action_history
+        # action_history = self.sim.action_history
+        wh_list = []
         for i in range(len(self.sim.trust_history)):
             info = HumanInfo(health_history[i], time_history[i], 1.0, rec_history[i], i)
             wh = self.human.reward_model.get_wh(info)
-            print(f"{i+1:<7}, {health_history[i+1]:<7}, {time_history[i+1]:<5}, "
-                  f"{f'{trust_history[i]:.2f}':<5}, {rec_history[i]:<12}, {action_history[i]:<6}, {wh:.2f}")
+            wh_list.append(wh)
+            # print(f"{i+1:<7}, {health_history[i+1]:<7}, {time_history[i+1]:<5}, "
+            #       f"{f'{trust_history[i]:.2f}':<5}, {rec_history[i]:<12}, {action_history[i]:<6}, {wh:.2f}")
+
+        # Things to print: Site index, Threat, Threat Level, Health, Time, Recommendation, Trust, Action, wh
+        data = {'Site no.': list(np.arange(self.sim_settings.num_sites)),
+                'Threat': self.sim_settings.threat_setter.threats,
+                'Threat level': self.sim_settings.threat_setter.after_scan, 'Health': self.sim.health_history[1:],
+                'Time': self.sim.time_history[1:], 'Recommendation': self.sim.rec_history,
+                'Trust': self.sim.trust_history, 'Action': self.sim.action_history}
+
+        df = pd.DataFrame(data)
+        print(df)
 
 
 def main():
