@@ -19,12 +19,13 @@ class SimRunner:
     """
     Sets up and runs the simulation
     """
-    def __init__(self, settings: SimSettings):
+    def __init__(self, settings: SimSettings, wh_const: float = 0.85):
         self.state_dep_sim = None
         self.const_sim = None
         self.sim_settings = settings
         self.state_dep_robot = None
         self.const_robot = None
+        self.wh_const = wh_const
 
         # Two human instances with shared initial parameters
         # This is to ensure that one model only gets updated with recommendations from one robot
@@ -59,7 +60,7 @@ class SimRunner:
         decision_model = BoundedRationalityDisuse(kappa=0.2, seed=123)
 
         # Reward model
-        reward_model = ConstantWeights(wh=0.85)
+        reward_model = ConstantWeights(wh=self.wh_const)
 
         # Human model
         human_model = HumanModel(trust_model, decision_model, reward_model)

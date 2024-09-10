@@ -43,10 +43,10 @@ def main():
         const_trust[starting_condition] = trust_2
 
     # Save the trust data
-    with open('state_dep_trust.pkl', 'wb') as f:
+    with open('data/state_dep_trust.pkl', 'wb') as f:
         pickle.dump(state_dep_trust, f)
 
-    with open('const_trust.pkl', 'wb') as f:
+    with open('data/const_trust.pkl', 'wb') as f:
         pickle.dump(const_trust, f)
 
     print("State dependent:")
@@ -65,7 +65,7 @@ def main():
             counts[i, j] = count
 
     data = {"Health": healths, "Time": times, "Counts": counts, "States": states_1}
-    with open('state_dep_data.pkl', 'wb') as f:
+    with open('data/state_dep_data.pkl', 'wb') as f:
         pickle.dump(data, f)
 
     fig, ax = plt.subplots()
@@ -90,10 +90,10 @@ def main():
             counts[i, j] = count
 
     data = {"Health": healths, "Time": times, "Counts": counts, "States": states_1}
-    with open('const_data.pkl', 'wb') as f:
+    with open('data/const_data.pkl', 'wb') as f:
         pickle.dump(data, f)
 
-    with open('starting_conditions.pkl', 'wb') as f:
+    with open('data/starting_conditions.pkl', 'wb') as f:
         pickle.dump(starting_conditions, f)
 
     fig, ax = plt.subplots()

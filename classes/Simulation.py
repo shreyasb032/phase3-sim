@@ -22,7 +22,7 @@ class Simulation:
         self.threat_history = []
         self.threat_level_history = []
         self.smc = SmartThreatChooser()
-        self.rng = default_rng()
+        self.rng = default_rng(seed=123)
 
     def run(self):
         """
