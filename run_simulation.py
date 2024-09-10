@@ -126,7 +126,7 @@ class SimRunner:
 
 
 def main():
-    num_sites = 15
+    num_sites = 10
     start_health = 100
     start_time = 0
     prior_threat_level = 0.7
