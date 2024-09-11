@@ -9,7 +9,7 @@ from classes.ThreatSetter import SmartThreatChooser
 class Simulation:
     """Class for a single simulation"""
 
-    def __init__(self, settings: SimSettings, robot: Robot, human: Human):
+    def __init__(self, settings: SimSettings, robot: Robot, human: Human, choose_smartly: bool = True):
         self.settings = settings
         self.robot = robot
         self.human = human
@@ -23,6 +23,10 @@ class Simulation:
         self.threat_level_history = []
         self.smc = SmartThreatChooser()
         self.rng = default_rng(seed=123)
+        self.choose_smartly = choose_smartly
+
+    def update_settings(self, settings: SimSettings):
+        self.settings = settings
 
     def run(self):
         """
@@ -39,16 +43,15 @@ class Simulation:
             wh = self.robot.reward_model.get_wh(temp_human_info)
             threat = threats[site_idx]
             threat_level = after_scan[site_idx]
-            if self.rng.uniform() < 0.5:
-                threat, threat_level = self.smc.choose_threat_intelligently(0.85, wh)
+            if self.choose_smartly and self.rng.uniform() < 0.5:
+                threat, threat_level = self.smc.choose_threat_intelligently(0.6, wh)
+
             self.threat_history.append(threat)
             self.threat_level_history.append(threat_level)
-            # threat_level = after_scan[site_idx]
             robot_info = RobotInfo(health, time, threat_level, prior, site_idx)
             rec = self.robot.get_recommendation(robot_info)
             human_info = HumanInfo(health, time, threat_level, rec, site_idx)
             action = self.human.choose_action(human_info)
-            # threat = threats[site_idx]
             obs = Observation(threat, action)
 
             # Update the human's trust
