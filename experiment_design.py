@@ -11,6 +11,7 @@ from classes.Simulation import Simulation
 from classes.RewardModels import StateDependentWeights
 from classes.State import HumanInfo
 from run_simulation import SimRunner
+
 sns.set_theme(context='talk', style='white')
 
 NUM_SITES = 10
@@ -64,7 +65,6 @@ class ExperimentDesign:
                 counts[key][i, j] += count
 
         return counts
-
 
     def __plot_single(self, sim: Simulation, ax: plt.Axes, counts: Dict, key: str):
         """
@@ -140,14 +140,83 @@ class ExperimentDesign:
 
         plt.show()
 
+    @staticmethod
+    def __trust_data_helper(trust_data: Dict, data: Dict):
+        """
+        Updates and returns the trust data
+        """
+        sim_runner = data['sim_runner']
+        state_dep_sim = sim_runner.state_dep_sim
+        # Add the first entry to trust data
+        if len(trust_data) == 0:
+            trust_data['state_dep'] = [state_dep_sim.trust_history]
+        else:
+            trust_data['state_dep'].append(state_dep_sim.trust_history)
+        const_sims = sim_runner.const_sims
+        # Add the rest
+        if len(trust_data) == 1:
+            for sim in const_sims:
+                info = HumanInfo(100, 100, 1., 1, 0)
+                wh = sim.robot.reward_model.get_wh(info)
+                key = f'{wh:.2f}'
+                trust_data[key] = [sim.trust_history]
+        else:
+            for sim in const_sims:
+                info = HumanInfo(100, 100, 1., 1, 0)
+                wh = sim.robot.reward_model.get_wh(info)
+                key = f'{wh:.2f}'
+                trust_data[key].append(sim.trust_history)
+
+        return trust_data
+
+    @staticmethod
+    def __plot_trust_helper(trust_data: Dict, ax: plt.Axes):
+        palette = sns.color_palette('deep')
+        markers = ['o', 'v', 's', 'P', 'X', '*']
+        lw = 2
+        alpha = 0.5
+        for i, (key, val) in enumerate(trust_data.items()):
+            _trust = np.array(val)
+            color = palette[i]
+            marker = markers[i]
+            mean = _trust.mean(axis=0)
+            std = _trust.std(axis=0)
+            ci = 1.96 * std / np.sqrt(_trust.shape[0])
+            x = np.arange(1, len(mean) + 1)
+            ax.plot(x, mean, lw=lw, label=key, c=color, marker=marker)
+            ax.fill_between(x, mean-ci, mean+ci, color=color, alpha=alpha)
+
+        return ax
+
+    def plot_trust(self, dir_path: str | None = None):
+        """
+        Plots the trust feedback given for the robot using different strategies
+        """
+        if dir_path is None:
+            dir_path = './data/'
+        files = os.listdir(dir_path)
+        fig, ax = plt.subplots(figsize=(14, 10))
+        trust_data = {}
+        for file in files:
+            filepath = path.join(dir_path, file)
+            with open(filepath, 'rb') as f:
+                data = pickle.load(f)
+            trust_data = self.__trust_data_helper(trust_data, data)
+
+        ax = self.__plot_trust_helper(trust_data, ax)
+        ax.legend()
+        ax.grid('y')
+        ax.set_ylim([0.3, 1.0])
+        fig.tight_layout()
+        plt.show()
 
 def main():
     starting_conditions = [(100, 0), (100, 80), (30, 0), (90, 30), (30, 30), (40, 70), (50, 50), (50, 0),
                            (70, 50),  (20, 70)]
     runner = ExperimentDesign(starting_conditions)
     # runner.run_and_save_sims()
-    runner.plot_states_visited()
-
+    # runner.plot_states_visited()
+    runner.plot_trust()
 
 
 if __name__ == "__main__":
