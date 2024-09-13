@@ -65,7 +65,7 @@ class StateDependentWeights(RewardModelBase):
         self.add_noise = add_noise
         self.rng = None
         if self.add_noise:
-            self.rng = np.random.default_rng(seed=123)
+            self.rng = np.random.default_rng(seed=None)
 
     def get_wh(self, info: HumanInfo) -> float:
         """

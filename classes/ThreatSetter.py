@@ -73,7 +73,7 @@ def main():
 
 class SmartThreatChooser:
 
-    def __init__(self, seed:int = 123):
+    def __init__(self, seed: int | None = None):
         self.rng = default_rng(seed)
 
     def choose_threat_intelligently(self, wh_const: float, wh_state_dep: float):

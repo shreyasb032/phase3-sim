@@ -30,7 +30,8 @@ class BetaDistributionModel(TrustModelBase):
     Guo et al. (2021) - Modeling and Predicting Trust Dynamics in Human–Robot Teaming: A Bayesian Inference Approach
     """
 
-    def __init__(self, parameters: Dict[str, float], performance_metric: PerformanceMetricBase, seed: int = 123):
+    def __init__(self, parameters: Dict[str, float], performance_metric: PerformanceMetricBase,
+                 seed: int | None = None):
         """
         Initializes the class
         :param parameters: a dict with keys alpha0, beta0, vs, vf and corresponding values

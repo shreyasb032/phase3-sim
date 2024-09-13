@@ -22,7 +22,8 @@ class Simulation:
         self.threat_history = []
         self.threat_level_history = []
         self.smc = SmartThreatChooser()
-        self.rng = default_rng(seed=123)
+        # self.rng = default_rng(seed=123)
+        self.rng = default_rng()
         self.choose_smartly = choose_smartly
 
     def update_settings(self, settings: SimSettings):
@@ -32,6 +33,7 @@ class Simulation:
         """
         Runs a simulation of the ISR mission for all sites
         """
+        # Health and time are quantities remaining and decrease as the simulation goes on
         health = self.settings.start_health
         time = self.settings.start_time
         after_scan = self.settings.threat_setter.after_scan
@@ -44,7 +46,7 @@ class Simulation:
             threat = threats[site_idx]
             threat_level = after_scan[site_idx]
             if self.choose_smartly and self.rng.uniform() < 0.5:
-                threat, threat_level = self.smc.choose_threat_intelligently(0.6, wh)
+                threat, threat_level = self.smc.choose_threat_intelligently(0.87, wh)
 
             self.threat_history.append(threat)
             self.threat_level_history.append(threat_level)

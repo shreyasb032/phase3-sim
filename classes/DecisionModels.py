@@ -9,7 +9,7 @@ class DecisionModelBase:
     The base class for a human Decision Model
     """
 
-    def __init__(self, seed: int = 123):
+    def __init__(self, seed: int | None = None):
         """
         :param seed: the seed for the random number generator (default: 123)
         """
@@ -31,7 +31,7 @@ class BoundedRationalityDisuse(DecisionModelBase):
     The bounded rationality disuse model of human decision-making
     """
 
-    def __init__(self, kappa: float, seed: int = 123):
+    def __init__(self, kappa: float, seed: int | None = None):
         super().__init__(seed)
         self.prob_1 = None
         self.prob_0 = None

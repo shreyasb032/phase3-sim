@@ -11,7 +11,7 @@ class TrustParamsGenerator:
     """
     Uses the data from phase 1 of the study to sample trust parameters
     """
-    def __init__(self, seed=123, add_noise=False):
+    def __init__(self, seed=None, add_noise=False):
         self.params_list = None
         self.seed = seed
         self.rng = np.random.default_rng(seed)

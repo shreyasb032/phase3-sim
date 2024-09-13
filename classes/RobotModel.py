@@ -179,5 +179,7 @@ class Robot:
         if obs.threat == 1:
             if obs.action_chosen == 0:
                 info.health -= 10
+                info.health = max(0, info.health)   # Make sure it is not negative
         if obs.action_chosen == 1:
-            info.time += 10
+            info.time -= 10
+            info.time = max(0, info.time)           # Make sure it is not negative

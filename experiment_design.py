@@ -5,6 +5,7 @@ import pickle
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from classes.SimSettings import SimSettings
 from classes.Simulation import Simulation
@@ -15,10 +16,12 @@ from run_simulation import SimRunner
 sns.set_theme(context='talk', style='white')
 
 NUM_SITES = 10
-PRIOR_THREAT_LEVEL = 0.6
+PRIOR_THREAT_LEVEL = 0.7
 DISCOUNT_FACTOR = 0.7
 NUM_PARTICIPANTS_PER_INITIAL = 20
-WH_CONST = [0.6, 0.7, 0.8, 0.9]
+# WH_CONST = [0.7, 0.8, 0.87, 0.95]
+WH_CONST = [0.87]
+
 
 class ExperimentDesign:
     """
@@ -28,8 +31,8 @@ class ExperimentDesign:
 
     def __init__(self, starting_conditions):
         self.starting_conditions = starting_conditions
-        self.health_bins = np.arange(-50, 110, 10)
-        self.time_bins = np.arange(0, 180, 10)
+        self.health_bins = np.arange(0, 110, 10)
+        self.time_bins = np.arange(0, 110, 10)
 
     def run_and_save_sims(self):
         for i, starting_condition in enumerate(self.starting_conditions):
@@ -37,7 +40,7 @@ class ExperimentDesign:
             for j in tqdm(range(NUM_PARTICIPANTS_PER_INITIAL)):
                 settings = SimSettings(NUM_SITES, start_health, start_time,
                                        PRIOR_THREAT_LEVEL, DISCOUNT_FACTOR,
-                                       threat_seed=10 * i + j)
+                                       threat_seed=None)
                 sim_runner = SimRunner(settings, wh_const=WH_CONST)
                 sim_runner.run()
                 file = path.join('data', f'run_{i}_{j}.pkl')
@@ -57,7 +60,7 @@ class ExperimentDesign:
 
         if counts[key] is None:
             counts[key] = np.zeros((self.health_bins.shape[0], self.time_bins.shape[0]),
-                              dtype=int)
+                                   dtype=int)
 
         for i, health in enumerate(self.health_bins):
             for j, _time in enumerate(self.time_bins):
@@ -66,18 +69,17 @@ class ExperimentDesign:
 
         return counts
 
-    def __plot_single(self, sim: Simulation, ax: plt.Axes, counts: Dict, key: str):
+    def __plot_single(self, ax: plt.Axes, counts: Dict, key: str):
         """
         Plots the heatmap for a single simulation
         """
-        counts = self.__get_state_counts(sim, counts, key)
         im = ax.imshow(counts[key], origin='lower')
         ax.set_yticks(np.arange(len(self.health_bins)), labels=self.health_bins)
         ax.set_xticks(np.arange(len(self.time_bins)), labels=self.time_bins)
         ax.set_title(key)
-        ax.set_xlabel('Time spent')
+        ax.set_xlabel('Time remaining')
         ax.set_ylabel('Health remaining')
-        return ax, counts
+        return im, ax, counts
 
     def plot_states_visited(self, dir_path: str | None = None):
         """
@@ -90,6 +92,8 @@ class ExperimentDesign:
         figs = {}
         counts = {}
         for file in files:
+            if 'csv' in file:
+                continue
             filepath = path.join(dir_path, file)
             with open(filepath, 'rb') as f:
                 data = pickle.load(f)
@@ -121,22 +125,28 @@ class ExperimentDesign:
 
             for sim in sims:
                 if isinstance(sim.robot.reward_model, StateDependentWeights):
-                    fig = figs['state_dep']
-                    ax = axes['state_dep']
                     key = 'state_dep'
-                    ax, counts = self.__plot_single(sim, ax, counts, key)
-                    fig.tight_layout()
+                    counts = self.__get_state_counts(sim, counts, key)
+                    # fig = figs['state_dep']
+                    # ax = axes['state_dep']
+                    # key = 'state_dep'
+                    # ax, im, counts = self.__plot_single(sim, ax, counts, key)
+                    # fig.tight_layout()
                 else:
                     info = HumanInfo(100, 100, 1., 1, 0)
                     wh = sim.robot.reward_model.get_wh(info)
                     key = f'{wh:.2f}'
-                    fig = figs[key]
-                    ax = axes[key]
-                    ax, counts = self.__plot_single(sim, ax, counts, key)
-                    fig.tight_layout()
+                    counts = self.__get_state_counts(sim, counts, key)
+                    # fig = figs[key]
+                    # ax = axes[key]
+                    # ax, im, counts = self.__plot_single(sim, ax, counts, key)
+                    # fig.tight_layout()
 
-                axes[key] = ax
-                figs[key] = fig
+        for key, fig in figs.items():
+            ax = axes[key]
+            im, ax, counts = self.__plot_single(ax, counts, key)
+            fig.colorbar(im, ax=ax)
+            fig.tight_layout()
 
         plt.show()
 
@@ -184,7 +194,9 @@ class ExperimentDesign:
             ci = 1.96 * std / np.sqrt(_trust.shape[0])
             x = np.arange(1, len(mean) + 1)
             ax.plot(x, mean, lw=lw, label=key, c=color, marker=marker)
-            ax.fill_between(x, mean-ci, mean+ci, color=color, alpha=alpha)
+            ax.fill_between(x, mean - ci, mean + ci, color=color, alpha=alpha)
+            ax.set_xlabel('Interactions')
+            ax.set_ylabel('Trust')
 
         return ax
 
@@ -195,9 +207,11 @@ class ExperimentDesign:
         if dir_path is None:
             dir_path = './data/'
         files = os.listdir(dir_path)
-        fig, ax = plt.subplots(figsize=(14, 10))
+        fig, ax = plt.subplots(figsize=(13, 9))
         trust_data = {}
         for file in files:
+            if 'csv' in file:
+                continue
             filepath = path.join(dir_path, file)
             with open(filepath, 'rb') as f:
                 data = pickle.load(f)
@@ -210,13 +224,186 @@ class ExperimentDesign:
         fig.tight_layout()
         plt.show()
 
+    def plot_trust_separate(self, dir_path: str | None = None):
+        """
+        Plots the trust dynamics separately for each initial condition
+        """
+        if dir_path is None:
+            dir_path = './data/'
+        files = os.listdir(dir_path)
+        # Get the indices
+        initial_conditions_indices = set()
+        participant_indices = set()
+        for file in files:
+            if 'csv' in file:
+                continue
+            details = file.strip('.pkl').split('_')
+            idx1 = int(details[1])
+            idx2 = int(details[2])
+            initial_conditions_indices.add(idx1)
+            participant_indices.add(idx2)
+
+        trust_data = {}
+        label = None
+        for i in sorted(initial_conditions_indices):
+            trust_data[i] = {}
+            for j in sorted(participant_indices):
+                filename = f'{dir_path}run_{i}_{j}.pkl'
+                with open(filename, 'rb') as f:
+                    data = pickle.load(f)
+                sim_runner = data['sim_runner']
+                label = data['starting_condition']
+                if 'state_dep' not in trust_data[i]:
+                    trust_data[i]['state_dep'] = [sim_runner.state_dep_sim.trust_history]
+                else:
+                    trust_data[i]['state_dep'].append(sim_runner.state_dep_sim.trust_history)
+                if len(trust_data[i]) == 1:
+                    for sim in sim_runner.const_sims:
+                        info = HumanInfo(100, 100, 1., 1, 0)
+                        wh = sim.robot.reward_model.get_wh(info)
+                        key = f'{wh:.2f}'
+                        trust_data[i][key] = [sim.trust_history]
+                else:
+                    for sim in sim_runner.const_sims:
+                        info = HumanInfo(100, 100, 1., 1, 0)
+                        wh = sim.robot.reward_model.get_wh(info)
+                        key = f'{wh:.2f}'
+                        trust_data[i][key].append(sim.trust_history)
+
+            fig, ax = plt.subplots()
+            self.__plot_trust_helper(trust_data[i], ax)
+            ax.set_title(f'Starting Health: {label[0]}, Time: {label[1]}')
+            ax.legend()
+            ax.grid('y')
+            ax.set_ylim([0.3, 1.0])
+            fig.tight_layout()
+
+        plt.show()
+
+    @staticmethod
+    def __initialize_data():
+        """
+        Initializes data for storage into Excel sheets
+        """
+        store = {
+            'Run ID': [],
+            'Participant ID': [],
+            'Site Index': [],
+            'Health': [],
+            'Time': [],
+            'Threat Level': [],
+            'Threat': [],
+            'Recommendation': [],
+            'Action': [],
+            'Trust': [],
+            'wh': []
+        }
+
+        return store
+
+    @staticmethod
+    def get_wh_history(sim: Simulation):
+        wh_history = []
+        for i, (h, t) in enumerate(zip(sim.health_history, sim.time_history)):
+            info = HumanInfo(h, t, 1.0, 1, i)
+            wh = sim.robot.reward_model.get_wh(info)
+            wh_history.append(wh)
+
+        return wh_history
+
+    def __store_helper(self, store: Dict, sim: Simulation, i, j):
+
+        data_length = len(sim.health_history)
+        store['Run ID'].extend([i] * data_length)
+        store['Participant ID'].extend([j] * data_length)
+        store['Site Index'].extend(list(np.arange(data_length)))
+        store['Health'].extend(sim.health_history)
+        store['Time'].extend(sim.time_history)
+        threat_levels = [np.nan]
+        threat_levels.extend(sim.threat_level_history)
+        threats = [np.nan]
+        threats.extend(sim.threat_history)
+        recommendations = [np.nan]
+        recommendations.extend(sim.rec_history)
+        actions = [np.nan]
+        actions.extend(sim.action_history)
+        trust = [np.nan]
+        trust.extend(sim.trust_history)
+        store['Threat Level'].extend(threat_levels)
+        store['Threat'].extend(threats)
+        store['Recommendation'].extend(recommendations)
+        store['Action'].extend(actions)
+        store['Trust'].extend(trust)
+        store['wh'].extend(self.get_wh_history(sim))
+
+        return store
+
+    def convert_to_excel(self, dir_path: str | None = None):
+        """
+        Converts the saved data to Excel
+        One sheet per reward weight in the simulation
+        sheet 1 - state_dep
+        sheet 2... - 'wh:.2f'
+        """
+        # Columns - Run ID, Participant ID, Site Index, Health, Time, Threat Level, Threat, Recommendation, Action,
+        #           Trust, wh
+        if dir_path is None:
+            dir_path = './data/'
+        files = os.listdir(dir_path)
+        # Get the indices
+        initial_conditions_indices = set()
+        participant_indices = set()
+        for file in files:
+            if 'csv' in file:
+                continue
+            details = file.strip('.pkl').split('_')
+            idx1 = int(details[1])
+            idx2 = int(details[2])
+            initial_conditions_indices.add(idx1)
+            participant_indices.add(idx2)
+
+        state_dep_store = {}
+        const_stores = []
+        wh_consts = []
+        for i in sorted(initial_conditions_indices):
+            for j in sorted(participant_indices):
+                filename = f'{dir_path}run_{i}_{j}.pkl'
+                with open(filename, 'rb') as f:
+                    data = pickle.load(f)
+                sim_runner = data['sim_runner']
+                state_dep_sim = sim_runner.state_dep_sim
+                if i == 0 and j == 0:
+                    state_dep_store = self.__initialize_data()
+                state_dep_store = self.__store_helper(state_dep_store, state_dep_sim, i, j)
+
+                const_sims = sim_runner.const_sims
+                for k, sim in enumerate(const_sims):
+                    if i == 0 and j == 0:
+                        const_stores.append(self.__initialize_data())
+                        wh_consts = [None for _ in range(len(const_sims))]
+                    const_stores[k] = self.__store_helper(const_stores[k], sim, i, j)
+                    wh_consts[k] = const_stores[k]['wh'][0]
+
+        # Convert to pandas dataframe and save to csv
+        with pd.ExcelWriter('data/csv/sims.xlsx') as writer:
+            df = pd.DataFrame(state_dep_store)
+            df.to_excel(writer, sheet_name='state_dep', index=False)
+            for i, const_store in enumerate(const_stores):
+                df = pd.DataFrame(const_store)
+                df.to_excel(writer, sheet_name=f'{wh_consts[i]:.2f}', index=False)
+
+
 def main():
-    starting_conditions = [(100, 0), (100, 80), (30, 0), (90, 30), (30, 30), (40, 70), (50, 50), (50, 0),
-                           (70, 50),  (20, 70)]
+    # Health remaining and time remaining
+    starting_conditions = [(100, 100), (100, 70), (100, 40),
+                           (70, 100), (70, 70), (70, 40),
+                           (40, 100), (40, 70), (40, 40)]
     runner = ExperimentDesign(starting_conditions)
     # runner.run_and_save_sims()
     # runner.plot_states_visited()
-    runner.plot_trust()
+    # runner.plot_trust()
+    # runner.plot_trust_separate()
+    runner.convert_to_excel()
 
 
 if __name__ == "__main__":

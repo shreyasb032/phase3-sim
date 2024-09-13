@@ -6,7 +6,7 @@ class SimSettings:
 
     def __init__(self, num_sites: int, start_health: int, start_time: int,
                  prior_threat_level: float,
-                 discount_factor: float, threat_seed: int = 123):
+                 discount_factor: float, threat_seed: int | None = None):
         self.num_sites = num_sites
         self.start_health = start_health
         self.start_time = start_time
