@@ -1,3 +1,5 @@
+from time import perf_counter
+import sys
 import os
 import os.path as path
 from typing import Dict
@@ -20,7 +22,7 @@ PRIOR_THREAT_LEVEL = 0.7
 DISCOUNT_FACTOR = 0.7
 NUM_PARTICIPANTS_PER_INITIAL = 20
 # WH_CONST = [0.7, 0.8, 0.87, 0.95]
-WH_CONST = [0.87]
+WH_CONST = [0.8062]
 
 
 class ExperimentDesign:
@@ -38,15 +40,29 @@ class ExperimentDesign:
         for i, starting_condition in enumerate(self.starting_conditions):
             start_health, start_time = starting_condition
             for j in tqdm(range(NUM_PARTICIPANTS_PER_INITIAL)):
+                # start = perf_counter()
                 settings = SimSettings(NUM_SITES, start_health, start_time,
                                        PRIOR_THREAT_LEVEL, DISCOUNT_FACTOR,
                                        threat_seed=None)
+                # end = perf_counter()
+                # print(f"Time for generating settings {end - start: .4f}")
+                # start = end
                 sim_runner = SimRunner(settings, wh_const=WH_CONST)
+                # end = perf_counter()
+                # print(f"Time for generating sim_runner {end - start: .4f}")
+                # start = end
+                # Running the sim_runner is the slowest at about 13 seconds per iteration
                 sim_runner.run()
+                # end = perf_counter()
+                # print(f"Time for running sim_runner {end - start: .4f}")
+                # start = end
                 file = path.join('data', f'run_{i}_{j}.pkl')
                 data = {'sim_runner': sim_runner, 'starting_condition': starting_condition}
                 with open(file, 'wb') as f:
                     pickle.dump(data, f)
+                # end = perf_counter()
+                # print(f"Time for saving data {end - start: .4f}")
+                # sys.exit(1)
 
     def __get_state_counts(self, sim: Simulation, counts: Dict, key: str):
         """

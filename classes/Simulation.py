@@ -1,3 +1,4 @@
+from time import perf_counter
 from numpy.random import default_rng
 from classes.HumanModels import Human
 from classes.RobotModel import Robot
@@ -46,12 +47,17 @@ class Simulation:
             threat = threats[site_idx]
             threat_level = after_scan[site_idx]
             if self.choose_smartly and self.rng.uniform() < 0.5:
-                threat, threat_level = self.smc.choose_threat_intelligently(0.87, wh)
+                threat, threat_level = self.smc.choose_threat_intelligently(0.8062, wh)
 
             self.threat_history.append(threat)
             self.threat_level_history.append(threat_level)
             robot_info = RobotInfo(health, time, threat_level, prior, site_idx)
+
+            # start = perf_counter()
             rec = self.robot.get_recommendation(robot_info)
+            # end = perf_counter()
+            # print(f"Time for getting the recommendation {end-start:.3f}")
+
             human_info = HumanInfo(health, time, threat_level, rec, site_idx)
             action = self.human.choose_action(human_info)
             obs = Observation(threat, action)

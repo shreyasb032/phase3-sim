@@ -1,5 +1,7 @@
 # Goal - compare a non-adaptive strategy with constant weights from the informed prior
 #        and one with the learnt state-dependent reward weights (still non-adaptive)
+from time import perf_counter
+import sys
 from typing import List
 import numpy as np
 import pandas as pd
@@ -102,14 +104,26 @@ class SimRunner:
                                               choose_smartly=False))
 
     def run(self):
+        # start = perf_counter()
         self.init_sim()
+        # end = perf_counter()
+        # print(f"Time for initializing the simulation {end - start: .4f}")
+        # start = end
+        # The below takes about 10 seconds
         self.state_dep_sim.run()
+        # end = perf_counter()
+        # print(f"Time for running the state-dependent simulation {end - start: .4f}")
+        # start = end
+        # One constant sim takes about 4 seconds
         for const_sim in self.const_sims:
             settings = const_sim.settings
             settings.threat_setter.after_scan = np.array(self.state_dep_sim.threat_level_history)
             settings.threat_setter.threats = np.array(self.state_dep_sim.threat_history)
             const_sim.update_settings(settings)
             const_sim.run()
+        # end = perf_counter()
+        # print(f"Time for running the constant simulation {end - start: .4f}")
+        # sys.exit(1)
 
     def __print_helper(self, sim):
         health_history = sim.health_history
