@@ -1,48 +1,70 @@
 import _context
+from classes.ParamsGenerator import TrustParamsGenerator
 from classes.HumanModels import Human
 from classes.TrustModels import BetaDistributionModel
 from classes.PerformanceMetrics import ObservedReward
 from classes.DecisionModels import BoundedRationalityDisuse
-from classes.RewardModels import ConstantWeights
+from classes.RewardModels import ConstantWeights, StateDependentWeights
 from numpy.random import default_rng
 from classes.State import HumanInfo, Observation
 
-rng = default_rng()
 
-parameters = {'alpha0': 120, 'beta0': 50., 'vs': 10., 'vf': 20.}
-performance_metric = ObservedReward()
-trust_model = BetaDistributionModel(parameters, performance_metric, seed=rng.integers(low=0, high=20))
-decision_model = BoundedRationalityDisuse(kappa=0.2, seed=rng.integers(low=0, high=20))
-reward_model = ConstantWeights(wh=1.0)
+class HumanTester:
+    def __init__(self, use_constant: bool = False):
+        self.params_gen = TrustParamsGenerator()
+        self.trust_params = self.params_gen.generate()
+        self.performance_metric = ObservedReward()
+        self.trust_model = BetaDistributionModel(self.trust_params, self.performance_metric)
+        self.decision_model = BoundedRationalityDisuse(kappa=0.2)
+        self.reward_model = ConstantWeights(wh=0.81)
+        if not use_constant:
+            self.reward_model = StateDependentWeights()
+        self.human = Human(self.trust_model, self.decision_model, self.reward_model)
 
-human = Human(trust_model, decision_model, reward_model)
+    def test_decision_model(self):
+        pass
 
-recommendation = 0
-threat = 1
-threat_level = 0.8
-health = 90
-time = 90
+    def test_trust_update(self):
+        pass
 
-info = HumanInfo(health, time, threat_level, recommendation, site_idx=0)
-action = human.choose_action(info)
-print(f"Chosen action: {action}")
-observation = Observation(threat, action)
+    def test_performance_metric(self):
+        healths = [20 * i for i in range(1, 6)]
+        times = healths.copy()
+        rng = default_rng()
+        for h in healths:
+            for c in times:
+                threat_level = 0.8
+                threat = rng.integers(0, 2)
+                info1 = HumanInfo(h, c, threat_level, recommendation=0, site_idx=0)
+                info2 = HumanInfo(h, c, threat_level, recommendation=1, site_idx=0)
+                wh = self.reward_model.get_wh(info1)
+                obs = Observation(threat, 0)
+                perf1 = self.performance_metric.get_performance(info1, obs, wh)
+                perf2 = self.performance_metric.get_performance(info2, obs, wh)
+                print(f"wh: {wh:.2f}, Threat: {threat}, Performance 0: {perf1}, Performance 1: {perf2}")
 
-# Testing mean trust
-trust_mean = human.get_trust_mean()
-print(f"Trust mean before update: {trust_mean:.2f}")
+    def test_params_generator(self):
+        for i in range(10):
+            trust_params = self.params_gen.generate()
+            print(f"Iteration: {i}   Alpha0: {trust_params[0]:.2f}, Beta0: {trust_params[1]:.2f}, "
+                  f"ws: {trust_params[2]:.2f}, wf: {trust_params[3]:.2f}")
 
-# Testing sampled trust
-trust_sample = human.get_trust_sample()
-print(f"Trust sampled before update: {trust_sample:.2f}")
+    def test_reward_model(self):
+        healths = [20 * i for i in range(1, 6)]
+        times = healths.copy()
+        for h in healths:
+            for c in times:
+                info = HumanInfo(h, c, threat_level=0.5, recommendation=0, site_idx=0)
+                wh = self.reward_model.get_wh(info)
+                print(f"Health: {h}, Time: {c}, wh: {wh: .2f}")
 
-# Testing update_trust
-print()
-print("Updating trust...")
-human.update_trust(info, observation, reward_model.get_wh(info))
-trust_mean = human.get_trust_mean()
-print(f"Trust mean after update: {trust_mean:.2f}")
 
-trust_sample = human.get_trust_sample()
-observation.add_trust_feedback(trust_sample)
-print(f"Trust sampled after update: {trust_sample:.2f}")
+def main():
+    tester = HumanTester(use_constant=False)
+    # tester.test_params_generator()
+    # tester.test_reward_model()
+    tester.test_performance_metric()
+
+
+if __name__ == "__main__":
+    main()
