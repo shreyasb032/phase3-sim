@@ -1,6 +1,6 @@
 import numpy as np
-from numpy.linalg import norm
-from scipy.special import digamma
+from scipy.special import digamma, loggamma
+from scipy.optimize import minimize
 from classes.TrustModels import BetaDistributionModel
 from classes.PerformanceMetrics import ObservedReward
 
@@ -10,139 +10,84 @@ class Estimator:
     Estimates the trust parameters after getting trust feedback from the human
     """
 
-    def __init__(self, current_model: BetaDistributionModel,
-                 max_iterations=10000, step_size=0.01, error_tol=0.01,
-                 num_sites=5):
+    def __init__(self):
         """
         Initializer of the Estimator class
-        :param max_iterations: maximum number of iterations of gradient descent to run before stopping
-        :param step_size: the step_size for the gradient descent algorithm
-        :param error_tol: the error below which we stop the gradient descent algorithm
-        :param num_sites: the number of sites in the mission
+        current_model: A trust model that needs to be updated
         """
-
         self.prior = None
-        self.MAX_ITER = max_iterations
-        self.step_size = step_size
-        self.define_prior()
-        self.error_tol = error_tol
-        self.N = num_sites
+        self.trust_feedback = []
+        self.perf_history = []
 
-        # Initial guesses for the trust params
-        self.gp_list = {0.0: [2., 98., 20., 30.],
-                        0.1: [10., 90., 20., 30.],
-                        0.2: [20., 80., 20., 30.],
-                        0.3: [30., 70., 20., 30.],
-                        0.4: [40., 60., 20., 30.],
-                        0.5: [50., 50., 20., 30.],
-                        0.6: [60., 40., 20., 30.],
-                        0.7: [70., 30., 20., 30.],
-                        0.8: [80., 20., 20., 30.],
-                        0.9: [90., 10., 20., 30.],
-                        1.0: [98., 2., 20., 30.]}
-
-        # self.feedback = np.zeros((self.N+1,), dtype=float)
-        self.feedback = []
-        self.keys = ['alpha0', 'beta0', 'vs', 'vf']
-        self.current_model = current_model
-
-    def define_prior(self):
-        """
-        Helper function to define the prior over the trust parameters
-        """
-
-        prior = {"AlphaEdges": np.array([0, 28, 56, 84, 112, 140]),
-                 "AlphaValues": np.array([0.2051, 0.1538, 0.07692, 0.2308, 0.3333]),
-                 "BetaEdges": np.array([0, 29, 58, 87, 116, 145]),
-                 "BetaValues": np.array([0.1269, 0.2335, 0.3063, 0.1808, 0.1525]),
-                 "wsEdges": np.array([0, 14, 28, 42, 56, 70]),
-                 "wsValues": np.array([0.5897, 0.1795, 0.1032, 0.07625, 0.05128]),
-                 "wfEdges": np.array([0, 28, 56, 84, 112, 140]),
-                 "wfValues": np.array([0.5641, 0.1026, 0.05128, 0.0641, 0.2179])}
-
-        self.prior = prior
-
-    def get_initial_guess(self, feedback) -> BetaDistributionModel:
-        """
-        Get a good initial guess to start the gradient descent algorithm.
-        The guess is chosen from a list to best estimate the initial value of trust given by the human
-        :param feedback: the initial trust feedback given by the human
-        """
-
-        t = round(feedback * 10) / 10
-        guess_params = dict(zip(self.keys, self.gp_list[t].copy()))
-        performance_metric = ObservedReward()
-        trust_model = BetaDistributionModel(guess_params, performance_metric)
-        self.current_model = trust_model
-
-        return trust_model
-
-    def update_model(self, trust_feedback: float):
+    def update_model(self, trust: float, performance: int):
 
         """
         Function to get the updated list of trust parameters
-        :param trust_feedback: the trust feedback given by the human after observing the outcome
-        # :param site_idx: the index of the site in which search was just completed
+        :param trust: the trust feedback given by the human after observing the outcome
+        :param performance: the performance of the recommendation at the current trial
         """
 
-        t = trust_feedback
-        # self.feedback[site_idx] = t
-        self.feedback.append(t)
+        self.trust_feedback.append(trust)
+        self.perf_history.append(performance)
+        x0 = np.ones((4,), dtype=float)
+        fun = lambda x: self.neg_log_likelihood(x, self.trust_feedback, self.perf_history)
+        grad = lambda x: self.gradients(x, self.trust_feedback, self.perf_history)
+        bnds = ((1, 200), (1, 200), (0.1, 200), (0.1, 200))
 
-        factor = self.step_size
-        lr = np.array([factor, factor, factor / self.N, factor / self.N])
+        res = minimize(fun, x0, jac=grad, method='SLSQP', bounds=bnds)
+        return res.x
 
-        guess_params = np.array(list(self.current_model.parameters.values()))
-        gradients_except_prior = self.get_grads(guess_params)
-        num_iters = 0
-
-        while norm(gradients_except_prior) > self.error_tol and num_iters < self.MAX_ITER:
-            num_iters += 1
-            gradients_except_prior = self.get_grads(guess_params)
-            guess_params += lr * gradients_except_prior
-            guess_params[guess_params <= 0.1] = 0.1  # To make sure the digamma function behaves well
-
-        new_params = dict(zip(self.keys, guess_params))
-        self.current_model.update_parameters(new_params)
-
-        return self.current_model
-
-    def get_grads(self, params):
+    @staticmethod
+    def neg_log_likelihood(x, *args):
         """
-        Returns the gradients of the log-likelihood function using a digamma approximation
-        :param params: the trust parameters at which to evaluate the gradients
-        # :param current_site: the index of the current search site
+        The negative log-likelihood function
+        :param x: the trust params in order [alpha0, beta0, ws, wf]
         """
+        trust_history, perf_history = args
+        logl = 0
+        alpha0, beta0, ws, wf = x
 
-        grads = np.zeros((4,))
-        alpha_0 = params[0]
-        beta_0 = params[1]
-        ws = params[2]
-        wf = params[3]
+        alpha = alpha0
+        beta = beta0
+        for i, (t, p) in enumerate(zip(trust_history, perf_history)):
+            alpha += p * ws
+            beta += (1 - p) * wf
+            t = max(min(t, 0.99), 0.01)
+            logl += (loggamma(alpha + beta) - loggamma(alpha) - loggamma(beta) + (alpha - 1) * np.log(t) +
+                     (beta - 1) * np.log(1. - t))
 
+        return -logl
+
+    @staticmethod
+    def gradients(x, *args):
+        """
+        The gradient of the log-likelihood function
+        """
+        grads = np.zeros_like(x)
+        trust_history, perf_history = args
+        num_sites = len(perf_history)
+        alpha0, beta0, ws, wf = x
         ns = 0
         nf = 0
 
-        for i in range(len(self.feedback)):
-
+        for i in range(num_sites):
             # We need to add the number of successes and failures regardless of whether feedback was queried or not
-            ns += self.current_model.performance_history[i]
-            nf += (1 - self.current_model.performance_history[i])
+            ns += perf_history[i]
+            nf += (1 - perf_history[i])
 
-            # If feedback was queried here, compute the gradients
-            alpha = alpha_0 + ns * ws
-            beta = beta_0 + nf * wf
+            alpha = alpha0 + ns * ws
+            beta = beta0 + nf * wf
 
             digamma_both = digamma(alpha + beta)
             digamma_alpha = digamma(alpha)
             digamma_beta = digamma(beta)
 
-            delta_alpha = digamma_both - digamma_alpha + np.log(max(self.feedback[i], 0.01))
-            delta_beta = digamma_both - digamma_beta + np.log(max(1 - self.feedback[i], 0.01))
+            delta_alpha = digamma_both - digamma_alpha + np.log(max(trust_history[i], 0.01))
+            delta_beta = digamma_both - digamma_beta + np.log(max(1 - trust_history[i], 0.01))
 
             grads[0] += delta_alpha
             grads[1] += delta_beta
             grads[2] += ns * delta_alpha
             grads[3] += nf * delta_beta
 
-        return grads
+        return -grads

@@ -62,7 +62,7 @@ class HumanModel(Human):
     def __init__(self, trust_model: BetaDistributionModel, decision_model: BoundedRationalityDisuse,
                  reward_model: RewardModelBase):
         super().__init__(trust_model, decision_model, reward_model)
-        self.trust_model_updater = Estimator(self.trust_model)
+        self.trust_model_updater = Estimator()
 
-    def update_trust_model(self, trust_feedback: float):
-        self.trust_model = self.trust_model_updater.update_model(trust_feedback)
+    def update_trust_model(self, trust_feedback: float, performance: int):
+        self.trust_model.parameters = self.trust_model_updater.update_model(trust_feedback, performance)

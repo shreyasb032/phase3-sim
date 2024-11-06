@@ -104,8 +104,8 @@ class Robot:
             possible_failures = stage - possible_successes
             _alpha = self.human_model.trust_model.alpha
             _beta = self.human_model.trust_model.beta
-            vs = self.human_model.trust_model.parameters['vs']
-            vf = self.human_model.trust_model.parameters['vf']
+            vs = self.human_model.trust_model.parameters[2]
+            vf = self.human_model.trust_model.parameters[3]
             possible_healths = current_health - np.arange(stage + 1) * 10
             possible_times = current_time + np.arange(stage + 1) * 10
 
@@ -174,7 +174,8 @@ class Robot:
         fake_human_info = HumanInfo(info.health, info.time, info.threat_level, self.recommendation, info.site_idx)
         wh = self.reward_model.get_wh(fake_human_info)
         self.human_model.update_trust(fake_human_info, obs, wh)
-        self.human_model.update_trust_model(obs.trust_feedback)
+        perf = self.human_model.trust_model.performance_metric.get_performance(fake_human_info, obs, wh)
+        self.human_model.update_trust_model(obs.trust_feedback, perf)
 
         if obs.threat == 1:
             if obs.action_chosen == 0:

@@ -20,7 +20,7 @@ sns.set_theme(context='talk', style='white')
 NUM_SITES = 10
 PRIOR_THREAT_LEVEL = 0.7
 DISCOUNT_FACTOR = 0.7
-NUM_PARTICIPANTS_PER_INITIAL = 20
+NUM_PARTICIPANTS_PER_INITIAL = 100
 # WH_CONST = [0.7, 0.8, 0.87, 0.95]
 WH_CONST = [0.8062]
 
@@ -40,29 +40,15 @@ class ExperimentDesign:
         for i, starting_condition in enumerate(self.starting_conditions):
             start_health, start_time = starting_condition
             for j in tqdm(range(NUM_PARTICIPANTS_PER_INITIAL)):
-                # start = perf_counter()
                 settings = SimSettings(NUM_SITES, start_health, start_time,
                                        PRIOR_THREAT_LEVEL, DISCOUNT_FACTOR,
                                        threat_seed=None)
-                # end = perf_counter()
-                # print(f"Time for generating settings {end - start: .4f}")
-                # start = end
                 sim_runner = SimRunner(settings, wh_const=WH_CONST)
-                # end = perf_counter()
-                # print(f"Time for generating sim_runner {end - start: .4f}")
-                # start = end
-                # Running the sim_runner is the slowest at about 13 seconds per iteration
                 sim_runner.run()
-                # end = perf_counter()
-                # print(f"Time for running sim_runner {end - start: .4f}")
-                # start = end
                 file = path.join('data', f'run_{i}_{j}.pkl')
                 data = {'sim_runner': sim_runner, 'starting_condition': starting_condition}
                 with open(file, 'wb') as f:
                     pickle.dump(data, f)
-                # end = perf_counter()
-                # print(f"Time for saving data {end - start: .4f}")
-                # sys.exit(1)
 
     def __get_state_counts(self, sim: Simulation, counts: Dict, key: str):
         """
@@ -143,20 +129,11 @@ class ExperimentDesign:
                 if isinstance(sim.robot.reward_model, StateDependentWeights):
                     key = 'state_dep'
                     counts = self.__get_state_counts(sim, counts, key)
-                    # fig = figs['state_dep']
-                    # ax = axes['state_dep']
-                    # key = 'state_dep'
-                    # ax, im, counts = self.__plot_single(sim, ax, counts, key)
-                    # fig.tight_layout()
                 else:
                     info = HumanInfo(100, 100, 1., 1, 0)
                     wh = sim.robot.reward_model.get_wh(info)
                     key = f'{wh:.2f}'
                     counts = self.__get_state_counts(sim, counts, key)
-                    # fig = figs[key]
-                    # ax = axes[key]
-                    # ax, im, counts = self.__plot_single(sim, ax, counts, key)
-                    # fig.tight_layout()
 
         for key, fig in figs.items():
             ax = axes[key]
@@ -194,6 +171,108 @@ class ExperimentDesign:
                 trust_data[key].append(sim.trust_history)
 
         return trust_data
+
+    @staticmethod
+    def __health_data_helper(health_data: Dict, data: Dict):
+        """
+        Updates and returns the trust data
+        """
+        sim_runner = data['sim_runner']
+        state_dep_sim = sim_runner.state_dep_sim
+        # Add the first entry to health data
+        if len(health_data) == 0:
+            health_data['state_dep'] = [state_dep_sim.health_history]
+        else:
+            health_data['state_dep'].append(state_dep_sim.health_history)
+        const_sims = sim_runner.const_sims
+
+        # Add the rest
+        if len(health_data) == 1:
+            for sim in const_sims:
+                info = HumanInfo(100, 100, 1., 1, 0)
+                wh = sim.robot.reward_model.get_wh(info)
+                key = f'{wh:.2f}'
+                health_data[key] = [sim.health_history]
+        else:
+            for sim in const_sims:
+                info = HumanInfo(100, 100, 1., 1, 0)
+                wh = sim.robot.reward_model.get_wh(info)
+                key = f'{wh:.2f}'
+                health_data[key].append(sim.health_history)
+
+        return health_data
+
+    @staticmethod
+    def __plot_health_helper(health_data: Dict, ax: plt.Axes):
+        palette = sns.color_palette('deep')
+        markers = ['o', 'v', 's', 'P', 'X', '*']
+        lw = 2
+        alpha = 0.5
+        for i, (key, val) in enumerate(health_data.items()):
+            _trust = np.array(val)
+            color = palette[i]
+            marker = markers[i]
+            mean = _trust.mean(axis=0)
+            std = _trust.std(axis=0)
+            ci = 1.96 * std / np.sqrt(_trust.shape[0])
+            x = np.arange(1, len(mean) + 1)
+            ax.plot(x, mean, lw=lw, label=key, c=color, marker=marker)
+            ax.fill_between(x, mean - ci, mean + ci, color=color, alpha=alpha)
+            ax.set_xlabel('Interactions')
+            ax.set_ylabel('Health')
+
+        return ax
+
+    @staticmethod
+    def __time_data_helper(time_data: Dict, data: Dict):
+        """
+        Updates and returns the trust data
+        """
+        sim_runner = data['sim_runner']
+        state_dep_sim = sim_runner.state_dep_sim
+        # Add the first entry to health data
+        if len(time_data) == 0:
+            time_data['state_dep'] = [state_dep_sim.time_history]
+        else:
+            time_data['state_dep'].append(state_dep_sim.time_history)
+        const_sims = sim_runner.const_sims
+
+        # Add the rest
+        if len(time_data) == 1:
+            for sim in const_sims:
+                info = HumanInfo(100, 100, 1., 1, 0)
+                wh = sim.robot.reward_model.get_wh(info)
+                key = f'{wh:.2f}'
+                time_data[key] = [sim.time_history]
+        else:
+            for sim in const_sims:
+                info = HumanInfo(100, 100, 1., 1, 0)
+                wh = sim.robot.reward_model.get_wh(info)
+                key = f'{wh:.2f}'
+                time_data[key].append(sim.time_history)
+
+        return time_data
+
+    @staticmethod
+    def __plot_time_helper(time_data: Dict, ax: plt.Axes):
+        palette = sns.color_palette('deep')
+        markers = ['o', 'v', 's', 'P', 'X', '*']
+        lw = 2
+        alpha = 0.5
+        for i, (key, val) in enumerate(time_data.items()):
+            _trust = np.array(val)
+            color = palette[i]
+            marker = markers[i]
+            mean = _trust.mean(axis=0)
+            std = _trust.std(axis=0)
+            ci = 1.96 * std / np.sqrt(_trust.shape[0])
+            x = np.arange(1, len(mean) + 1)
+            ax.plot(x, mean, lw=lw, label=key, c=color, marker=marker)
+            ax.fill_between(x, mean - ci, mean + ci, color=color, alpha=alpha)
+            ax.set_xlabel('Interactions')
+            ax.set_ylabel('Time')
+
+        return ax
 
     @staticmethod
     def __plot_trust_helper(trust_data: Dict, ax: plt.Axes):
@@ -237,6 +316,38 @@ class ExperimentDesign:
         ax.legend()
         ax.grid('y')
         ax.set_ylim([0.3, 1.0])
+        fig.tight_layout()
+        plt.show()
+
+    def plot_health_and_time(self, dir_path: str | None = None):
+        """
+        Plots the trust feedback given for the robot using different strategies
+        """
+        if dir_path is None:
+            dir_path = './data/'
+        files = os.listdir(dir_path)
+        fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(13, 10))
+        health_data = {}
+        time_data = {}
+        for file in files:
+            if 'csv' in file:
+                continue
+            filepath = path.join(dir_path, file)
+            with open(filepath, 'rb') as f:
+                data = pickle.load(f)
+            health_data = self.__health_data_helper(health_data, data)
+            time_data = self.__time_data_helper(time_data, data)
+
+        ax1 = self.__plot_health_helper(health_data, ax1)
+        ax1.legend()
+        ax1.grid('y')
+        ax1.set_ylim([0, 105])
+
+        ax2 = self.__plot_time_helper(time_data, ax2)
+        ax2.legend()
+        ax2.grid('y')
+        ax2.set_ylim([0, 105])
+
         fig.tight_layout()
         plt.show()
 
@@ -416,10 +527,11 @@ def main():
                            (40, 100), (40, 70), (40, 40)]
     runner = ExperimentDesign(starting_conditions)
     # runner.run_and_save_sims()
-    # runner.plot_states_visited()
+    runner.plot_states_visited()
     # runner.plot_trust()
+    # runner.plot_health_and_time()
     # runner.plot_trust_separate()
-    runner.convert_to_excel()
+    # runner.convert_to_excel()
 
 
 if __name__ == "__main__":

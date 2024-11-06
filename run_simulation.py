@@ -37,12 +37,12 @@ class SimRunner:
     def init_robots(self):
 
         # Trust model
-        parameters = {"alpha0": 10., "beta0": 10., 'vs': 10., 'vf': 20.}
+        parameters = [10., 10., 10., 20.]
         performance_metric = ObservedReward()
-        trust_model = BetaDistributionModel(parameters, performance_metric, seed=123)
+        trust_model = BetaDistributionModel(parameters, performance_metric, seed=None)
 
         # Decision model
-        decision_model = BoundedRationalityDisuse(kappa=0.2, seed=123)
+        decision_model = BoundedRationalityDisuse(kappa=0.2, seed=None)
 
         # Reward model
         reward_model = StateDependentWeights(add_noise=False)
@@ -56,12 +56,12 @@ class SimRunner:
 
         for wh in self.wh_const:
             # Trust model
-            parameters = {"alpha0": 10., "beta0": 10., 'vs': 10., 'vf': 20.}
+            parameters = [10., 10., 20., 30.]
             performance_metric = ObservedReward()
-            trust_model = BetaDistributionModel(parameters, performance_metric, seed=123)
+            trust_model = BetaDistributionModel(parameters, performance_metric, seed=None)
 
             # Decision model
-            decision_model = BoundedRationalityDisuse(kappa=0.2, seed=123)
+            decision_model = BoundedRationalityDisuse(kappa=0.2, seed=None)
 
             # Reward model
             reward_model = ConstantWeights(wh=wh)
@@ -74,14 +74,13 @@ class SimRunner:
 
     def init_humans(self):
 
-        params_generator = TrustParamsGenerator(seed=123, add_noise=True)
+        params_generator = TrustParamsGenerator(seed=None, add_noise=True)
         params_list = params_generator.generate()
-        parameters = dict(zip(['alpha0', 'beta0', 'vs', 'vf'], params_list))
         performance_metric = ObservedReward()
-        trust_model = BetaDistributionModel(parameters, performance_metric, seed=123)
+        trust_model = BetaDistributionModel(params_list, performance_metric, seed=None)
 
         # Decision model
-        decision_model = BoundedRationalityDisuse(kappa=0.2, seed=123)
+        decision_model = BoundedRationalityDisuse(kappa=0.2, seed=None)
 
         # Reward model
         reward_model = StateDependentWeights(add_noise=False)
@@ -104,16 +103,10 @@ class SimRunner:
                                               choose_smartly=False))
 
     def run(self):
-        # start = perf_counter()
         self.init_sim()
-        # end = perf_counter()
-        # print(f"Time for initializing the simulation {end - start: .4f}")
-        # start = end
         # The below takes about 10 seconds
         self.state_dep_sim.run()
-        # end = perf_counter()
-        # print(f"Time for running the state-dependent simulation {end - start: .4f}")
-        # start = end
+
         # One constant sim takes about 4 seconds
         for const_sim in self.const_sims:
             settings = const_sim.settings
@@ -121,9 +114,6 @@ class SimRunner:
             settings.threat_setter.threats = np.array(self.state_dep_sim.threat_history)
             const_sim.update_settings(settings)
             const_sim.run()
-        # end = perf_counter()
-        # print(f"Time for running the constant simulation {end - start: .4f}")
-        # sys.exit(1)
 
     def __print_helper(self, sim):
         health_history = sim.health_history
@@ -164,7 +154,7 @@ def main():
     wh_const = [0.6, 0.7, 0.8, 0.9]
 
     settings = SimSettings(num_sites, start_health, start_time, prior_threat_level, discount_factor,
-                           threat_seed=123)
+                           threat_seed=None)
     sim_runner = SimRunner(settings, wh_const)
     sim_runner.run()
     sim_runner.print_results()

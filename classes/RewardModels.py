@@ -75,10 +75,7 @@ class StateDependentWeights(RewardModelBase):
         health = info.health / 100.
         time = info.time / 100.
         x_arr = np.array([health, time], dtype=float).reshape((1, 2))
-        # x_pd = pd.DataFrame(data=x_arr, columns=['h', 'c'])
-        # x_scaled = self.scaler.transform(x_pd)
         x_scaled = (x_arr - self.scaler.mean_) / self.scaler.scale_
-        # x_scaled_with_constant = sm.add_constant(x_scaled)
         x_scaled_with_constant = np.insert(x_scaled, 0, 1., axis=1)
         y = x_scaled_with_constant @ self.ols_results.params
         wh = expit(y)

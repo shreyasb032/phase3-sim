@@ -22,7 +22,11 @@ class HumanTester:
         self.human = Human(self.trust_model, self.decision_model, self.reward_model)
 
     def test_decision_model(self):
-        pass
+        info = HumanInfo(health=100, time=100, threat_level=1.0, recommendation=1, site_idx=0)
+        trust = 0.8
+        for i in range(10):
+            act = self.decision_model.choose_action(info, trust, wh=0.1)
+            print(act)
 
     def test_trust_update(self):
         pass
@@ -63,7 +67,8 @@ def main():
     tester = HumanTester(use_constant=False)
     # tester.test_params_generator()
     # tester.test_reward_model()
-    tester.test_performance_metric()
+    # tester.test_performance_metric()
+    tester.test_decision_model()
 
 
 if __name__ == "__main__":

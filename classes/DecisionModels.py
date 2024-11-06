@@ -1,7 +1,6 @@
 from numpy.random import default_rng
 from scipy.special import expit
 from classes.State import HumanInfo
-from classes.RewardModels import RewardModelBase
 
 
 class DecisionModelBase:
@@ -31,12 +30,14 @@ class BoundedRationalityDisuse(DecisionModelBase):
     The bounded rationality disuse model of human decision-making
     """
 
-    def __init__(self, kappa: float, seed: int | None = None):
+    def __init__(self, kappa: float, hl: float = 10., tc: float = 10., seed: int | None = None):
         super().__init__(seed)
         self.prob_1 = None
         self.prob_0 = None
         self.reward_1 = None
         self.reward_0 = None
+        self.hl = hl
+        self.tc = tc
         self.kappa = kappa
         self.wh = None
         self.wc = None
@@ -55,8 +56,8 @@ class BoundedRationalityDisuse(DecisionModelBase):
         self.wc = 1 - self.wh
         self.threat_level = info.threat_level
 
-        self.reward_0 = -self.threat_level * self.wh
-        self.reward_1 = -self.wc
+        self.reward_0 = -self.threat_level * self.wh * self.hl
+        self.reward_1 = -self.wc * self.tc
         
         self.prob_0 = expit(self.kappa * (self.reward_0 - self.reward_1))
         self.prob_1 = 1 - self.prob_0        

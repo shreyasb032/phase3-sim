@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import List
 from numpy.random import default_rng
 from classes.PerformanceMetrics import PerformanceMetricBase
 from classes.State import HumanInfo, Observation
@@ -30,7 +30,7 @@ class BetaDistributionModel(TrustModelBase):
     Guo et al. (2021) - Modeling and Predicting Trust Dynamics in Human–Robot Teaming: A Bayesian Inference Approach
     """
 
-    def __init__(self, parameters: Dict[str, float], performance_metric: PerformanceMetricBase,
+    def __init__(self, parameters: List[float], performance_metric: PerformanceMetricBase,
                  seed: int | None = None):
         """
         Initializes the class
@@ -46,8 +46,8 @@ class BetaDistributionModel(TrustModelBase):
         self.num_failures = 0
         self.performance_metric = performance_metric
 
-        self.alpha = self.parameters['alpha0']
-        self.beta = self.parameters['beta0']
+        self.alpha = self.parameters[0]
+        self.beta = self.parameters[1]
 
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
@@ -64,16 +64,16 @@ class BetaDistributionModel(TrustModelBase):
         self.num_successes += performance
         self.num_failures += (1 - performance)
         self.performance_history.append(performance)
-        self.alpha = self.parameters['alpha0'] + self.num_successes * self.parameters['vs']
-        self.beta = self.parameters['beta0'] + self.num_failures * self.parameters['vf']
+        self.alpha = self.parameters[0] + self.num_successes * self.parameters[2]
+        self.beta = self.parameters[1] + self.num_failures * self.parameters[3]
 
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
 
-    def update_parameters(self, parameters: Dict[str, float]):
-        self.parameters = parameters
-        self.alpha = self.parameters['alpha0'] + self.num_successes * self.parameters['vs']
-        self.beta = self.parameters['beta0'] + self.num_failures * self.parameters['vf']
+    def update_parameters(self, new_parameters: List[float]):
+        self.parameters = new_parameters
+        self.alpha = self.parameters[0] + self.num_successes * self.parameters[2]
+        self.beta = self.parameters[1] + self.num_failures * self.parameters[3]
         self.trust_mean = self.alpha / (self.alpha + self.beta)
         self.trust_sampled = self.rng.beta(self.alpha, self.beta)
 
