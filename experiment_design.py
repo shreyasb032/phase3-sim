@@ -526,8 +526,8 @@ def main():
                            (70, 100), (70, 70), (70, 40),
                            (40, 100), (40, 70), (40, 40)]
     runner = ExperimentDesign(starting_conditions)
-    # runner.run_and_save_sims()
-    runner.plot_states_visited()
+    runner.run_and_save_sims()
+    # runner.plot_states_visited()
     # runner.plot_trust()
     # runner.plot_health_and_time()
     # runner.plot_trust_separate()

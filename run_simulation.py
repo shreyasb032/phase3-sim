@@ -2,6 +2,7 @@
 #        and one with the learnt state-dependent reward weights (still non-adaptive)
 from time import perf_counter
 import sys
+from copy import deepcopy
 from typing import List
 import numpy as np
 import pandas as pd
@@ -48,17 +49,22 @@ class SimRunner:
         reward_model = StateDependentWeights(add_noise=False)
 
         # Human model
-        human_model = HumanModel(trust_model, decision_model, reward_model)
+        human_model = HumanModel(deepcopy(trust_model),
+                                 deepcopy(decision_model),
+                                 deepcopy(reward_model))
 
         # Robot with state dependent reward weights
-        self.state_dep_robot = Robot(human_model, reward_model, self.sim_settings)
+        self.state_dep_robot = Robot(deepcopy(human_model),
+                                     deepcopy(reward_model),
+                                     deepcopy(self.sim_settings))
         self.const_robots = []
 
         for wh in self.wh_const:
             # Trust model
             parameters = [10., 10., 20., 30.]
             performance_metric = ObservedReward()
-            trust_model = BetaDistributionModel(parameters, performance_metric, seed=None)
+            trust_model = BetaDistributionModel(deepcopy(parameters),
+                                                deepcopy(performance_metric), seed=None)
 
             # Decision model
             decision_model = BoundedRationalityDisuse(kappa=0.2, seed=None)
@@ -67,17 +73,22 @@ class SimRunner:
             reward_model = ConstantWeights(wh=wh)
 
             # Human model
-            human_model = HumanModel(trust_model, decision_model, reward_model)
+            human_model = HumanModel(deepcopy(trust_model),
+                                     deepcopy(decision_model),
+                                     deepcopy(reward_model))
 
             # Robot
-            self.const_robots.append(Robot(human_model, reward_model, self.sim_settings))
+            self.const_robots.append(Robot(deepcopy(human_model),
+                                           deepcopy(reward_model),
+                                           deepcopy(self.sim_settings)))
 
     def init_humans(self):
 
         params_generator = TrustParamsGenerator(seed=None, add_noise=True)
         params_list = params_generator.generate()
         performance_metric = ObservedReward()
-        trust_model = BetaDistributionModel(params_list, performance_metric, seed=None)
+        trust_model = BetaDistributionModel(deepcopy(params_list),
+                                            deepcopy(performance_metric), seed=None)
 
         # Decision model
         decision_model = BoundedRationalityDisuse(kappa=0.2, seed=None)
@@ -86,16 +97,22 @@ class SimRunner:
         reward_model = StateDependentWeights(add_noise=False)
 
         # Human
-        self.state_dep_human = Human(trust_model, decision_model, reward_model)
+        self.state_dep_human = Human(deepcopy(trust_model),
+                                     deepcopy(decision_model),
+                                     deepcopy(reward_model))
         self.const_humans = []
 
         for _ in range(len(self.wh_const)):
-            self.const_humans.append(Human(trust_model, decision_model, reward_model))
+            self.const_humans.append(Human(deepcopy(trust_model),
+                                           deepcopy(decision_model),
+                                           deepcopy(reward_model)))
 
     def init_sim(self):
         self.init_robots()
         self.init_humans()
-        self.state_dep_sim = Simulation(self.sim_settings, self.state_dep_robot, self.state_dep_human,
+        self.state_dep_sim = Simulation(deepcopy(self.sim_settings),
+                                        self.state_dep_robot,
+                                        self.state_dep_human,
                                         choose_smartly=True)
         self.const_sims = []
         for i in range(len(self.wh_const)):
